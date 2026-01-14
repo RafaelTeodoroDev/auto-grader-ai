@@ -1,6 +1,6 @@
-import codebaseService from '@/app/api/services/codebase-service';
 import aiAgentService from '@/app/api/services/ai-agent-service';
 import { NextResponse } from 'next/server';
+import zipRepositoryService from '../services/zip-repository-service';
 
 export async function GET(request: Request) {
   try {
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const question = searchParams.get('question');
 
     // Buscar dados do repositório
-    const repositoryData: any = await codebaseService.getRepositoryData();
+    const repositoryData: any = await zipRepositoryService.getRepositoryData();
 
     // Se houver uma pergunta, usar o agente de IA para analisar
     if (question) {

@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE TABLE "code_embeddings" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"filename" text NOT NULL,
