@@ -54,8 +54,7 @@ class ZipRepositoryService {
             }
 
             throw new Error(
-                `Failed to fetch repository details: ${
-                    err.response?.status ?? 'unknown'
+                `Failed to fetch repository details: ${err.response?.status ?? 'unknown'
                 } ${err.response?.statusText ?? err.message}`,
             );
         }
@@ -310,4 +309,4 @@ class ZipRepositoryService {
     }
 }
 
-export default ZipRepositoryService;
+export default new ZipRepositoryService();
