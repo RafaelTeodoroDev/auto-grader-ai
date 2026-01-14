@@ -1,94 +1,189 @@
-import { cleanCloudflareEmailProtection, createRepositoryFileRegex, DIRECTORY_STRUCTURE_REGEX, isBlacklisted, PAGE_NUMBER_REGEX } from "./utils/codebase";
-import axios from 'axios';
+import { Octokit } from '@octokit/rest';
+import { isBlacklisted } from './utils/codebase';
 
 const owner = 'RafaelTeodoroDev';
 const repo = 'node-entregas';
-const encodedOwner = encodeURIComponent(owner);
-const encodedRepo = encodeURIComponent(repo);
-const apiUrl = `https://codebase.md/${encodedOwner}/${encodedRepo}?max_tokens=50000`;
-const headers = {
-    'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    Accept:
-        'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
-};
 
 class CodebaseService {
-    async getRepositoryData() {
-        const firstPageUrl = `${apiUrl}?page=1`;
-        const firstPageResponse = await axios.get(firstPageUrl, {
-            headers,
-            timeout: 30000,
+    private octokit: Octokit;
+
+    constructor() {
+        // Inicializar Octokit com ou sem token
+        this.octokit = new Octokit({
+            auth: process.env.GITHUB_TOKEN, // Opcional, mas recomendado para rate limits maiores
         });
+    }
 
-        if (firstPageResponse.status !== 200) {
-            return null;
+    /**
+     * Busca a estrutura de diretórios do repositório
+     */
+    private async getDirectoryStructure(
+        path: string = '',
+        prefix: string = '',
+    ): Promise<string> {
+        try {
+            const { data } = await this.octokit.repos.getContent({
+                owner,
+                repo,
+                path,
+            });
+
+            if (!Array.isArray(data)) {
+                return '';
+            }
+
+            let structure = '';
+
+            for (const item of data) {
+                if (isBlacklisted(item.name)) {
+                    continue;
+                }
+
+                if (item.type === 'dir') {
+                    structure += `${prefix}${item.name}/\n`;
+                    // Recursivamente buscar subdiretórios
+                    const subStructure = await this.getDirectoryStructure(
+                        item.path,
+                        `${prefix}\t`,
+                    );
+                    structure += subStructure;
+                } else if (item.type === 'file') {
+                    structure += `${prefix}${item.name}\n`;
+                }
+            }
+
+            return structure;
+        } catch (error) {
+            console.error(`Error getting directory structure for ${path}:`, error);
+            return '';
         }
+    }
 
-        const firstPageContent = cleanCloudflareEmailProtection(
-            firstPageResponse.data,
-        );
+    /**
+     * Busca todos os arquivos do repositório recursivamente
+     */
+    private async getFilesRecursively(
+        path: string = '',
+        filesMap: Map<string, string> = new Map(),
+        fileCount: { count: number } = { count: 0 },
+    ): Promise<Map<string, string>> {
+        try {
+            // Limite de arquivos para evitar problemas de memória
+            if (fileCount.count >= 90) {
+                return filesMap;
+            }
 
-        // Extract total pages from content (e.g., "page 1/4")
-        const pageMatch = firstPageContent.match(PAGE_NUMBER_REGEX());
-        const totalPages = pageMatch ? parseInt(pageMatch[1], 10) : 1;
+            const { data } = await this.octokit.repos.getContent({
+                owner,
+                repo,
+                path,
+            });
 
-        // Fetch all pages
-        const allContent = [firstPageContent];
+            if (!Array.isArray(data)) {
+                return filesMap;
+            }
 
-        // Fetch remaining pages in parallel
-        if (totalPages > 1) {
-            const pagePromises = [];
-            for (let page = 2; page <= totalPages; page += 1) {
-                const pageUrl = `${apiUrl}?page=${page}`;
-                pagePromises.push(
-                    axios
-                        .get(pageUrl, { headers, timeout: 30000 })
-                        .then((res) => (res.status === 200 ? res.data : null))
-                        .catch(() => null),
+            // Processar arquivos em paralelo (com limite)
+            const batchSize = 5;
+            for (let i = 0; i < data.length; i += batchSize) {
+                if (fileCount.count >= 90) break;
+
+                const batch = data.slice(i, i + batchSize);
+                await Promise.all(
+                    batch.map(async (item) => {
+                        if (fileCount.count >= 90) return;
+                        if (isBlacklisted(item.name)) return;
+
+                        if (item.type === 'dir') {
+                            // Recursivamente buscar arquivos no diretório
+                            await this.getFilesRecursively(item.path, filesMap, fileCount);
+                        } else if (item.type === 'file') {
+                            try {
+                                // Buscar conteúdo do arquivo
+                                const { data: fileData } = await this.octokit.repos.getContent({
+                                    owner,
+                                    repo,
+                                    path: item.path,
+                                });
+
+                                if ('content' in fileData && fileData.content) {
+                                    // Decodificar conteúdo base64
+                                    const content = Buffer.from(
+                                        fileData.content,
+                                        'base64',
+                                    ).toString('utf-8');
+
+                                    filesMap.set(item.path, content);
+                                    fileCount.count += 1;
+                                }
+                            } catch (error) {
+                                console.error(`Error fetching file ${item.path}:`, error);
+                            }
+                        }
+                    }),
                 );
             }
 
-            const pageResults = await Promise.all(pagePromises);
-            pageResults.forEach((result) => {
-                if (result) {
-                    allContent.push(cleanCloudflareEmailProtection(result));
-                }
-            });
+            return filesMap;
+        } catch (error) {
+            console.error(`Error getting files for ${path}:`, error);
+            return filesMap;
         }
+    }
 
-        // Extract directory structure from first page
-        const directoryMatch = firstPageContent.match(
-            DIRECTORY_STRUCTURE_REGEX(),
-        );
-        const directoryStructure = directoryMatch ? directoryMatch[1].trim() : '';
+    /**
+     * Busca todos os dados do repositório
+     */
+    async getRepositoryData() {
+        try {
+            console.log(`Fetching repository data for ${owner}/${repo}...`);
 
-        // Extract files from all pages (with memory limit)
-        const filesMap = new Map();
-        let fileCount = 0;
+            // Buscar estrutura de diretórios
+            const directoryStructure = await this.getDirectoryStructure();
 
-        allContent.forEach((content, index) => {
-            // Create fresh regex instance to avoid lastIndex state issues
-            const fileRegex = createRepositoryFileRegex();
-            let regexMatch = fileRegex.exec(content);
+            // Buscar todos os arquivos
+            const filesMap = await this.getFilesRecursively();
 
-            while (regexMatch !== null && fileCount < 90) {
-                const filename = regexMatch[1];
-                const fileContent = regexMatch[2];
+            console.log(
+                `Fetched ${filesMap.size} files from repository ${owner}/${repo}`,
+            );
 
-                // Ignora arquivos com extensões na blacklist
-                if (!isBlacklisted(filename)) {
-                    filesMap.set(filename, fileContent);
-                    fileCount += 1;
-                }
-                regexMatch = fileRegex.exec(content);
-            }
-        });
+            return {
+                directoryStructure,
+                filesMap: Object.fromEntries(filesMap),
+            };
+        } catch (error) {
+            console.error('Error fetching repository data:', error);
+            throw error;
+        }
+    }
 
-        return {
-            directoryStructure,
-            filesMap: Object.fromEntries(filesMap),
+    /**
+     * Busca informações do repositório
+     */
+    async getRepositoryInfo() {
+        try {
+            const { data } = await this.octokit.repos.get({
+                owner,
+                repo,
+            });
+
+            return {
+                name: data.name,
+                fullName: data.full_name,
+                description: data.description,
+                language: data.language,
+                stars: data.stargazers_count,
+                forks: data.forks_count,
+                openIssues: data.open_issues_count,
+                defaultBranch: data.default_branch,
+                createdAt: data.created_at,
+                updatedAt: data.updated_at,
+                topics: data.topics,
+            };
+        } catch (error) {
+            console.error('Error fetching repository info:', error);
+            throw error;
         }
     }
 }
