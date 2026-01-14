@@ -9,9 +9,7 @@ export async function GET(request: Request) {
     const question = searchParams.get('question');
 
     // Buscar dados do repositório
-    const repositoryData = await getRepositoryDataService.getRepositoryData();
-
-    return NextResponse.json({ repositoryData })
+    const repositoryData: any = await getRepositoryDataService.getRepositoryData();
 
     // Se houver uma pergunta, usar o agente de IA para analisar
     if (question) {
