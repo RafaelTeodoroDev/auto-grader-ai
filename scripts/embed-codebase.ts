@@ -5,15 +5,16 @@
  * Uso: yarn embed:codebase
  */
 
-import codebaseService from '../app/api/services/codebase-service';
+
 import embeddingService from '../app/api/services/embedding-service';
+import getRepositoryDataService from '../app/api/services/get-repository-data';
 
 async function main() {
   console.log('🔍 Buscando dados do repositório...\n');
 
   try {
     // Buscar dados do repositório
-    const repoData = await codebaseService.getRepositoryData();
+    const repoData = await getRepositoryDataService.getRepositoryData();
 
     if (!repoData) {
       console.error('❌ Falha ao buscar dados do repositório');
