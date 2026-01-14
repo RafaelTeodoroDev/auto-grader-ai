@@ -1,4 +1,4 @@
-import codebaseService from '@/app/api/services/codebase-service';
+import getRepositoryDataService from '@/app/api/services/get-repository-data';
 import aiAgentService from '@/app/api/services/ai-agent-service';
 import { NextResponse } from 'next/server';
 
@@ -9,7 +9,9 @@ export async function GET(request: Request) {
     const question = searchParams.get('question');
 
     // Buscar dados do repositório
-    const repositoryData: any = await codebaseService.getRepositoryData();
+    const repositoryData = await getRepositoryDataService.getRepositoryData();
+
+    return NextResponse.json({ repositoryData })
 
     // Se houver uma pergunta, usar o agente de IA para analisar
     if (question) {

@@ -1,4 +1,4 @@
-import { cleanCloudflareEmailProtection, createRepositoryFileRegex, DIRECTORY_STRUCTURE_REGEX, isBlacklisted, PAGE_NUMBER_REGEX } from "./utils/codebase";
+import { cleanCloudflareEmailProtection, createRepositoryFileRegex, DIRECTORY_STRUCTURE_REGEX, isBlacklisted, PAGE_NUMBER_REGEX } from "../utils/codebase";
 import axios from 'axios';
 
 const owner = 'RafaelTeodoroDev';
@@ -93,4 +93,4 @@ class CodebaseService {
     }
 }
 
-export default new CodebaseService();
+export default CodebaseService;
