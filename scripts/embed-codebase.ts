@@ -7,14 +7,14 @@
 
 
 import embeddingService from '../app/api/services/embedding-service';
-import getRepositoryDataService from '../app/api/services/get-repository-data';
+import zipRepositoryService from '../app/api/services/zip-repository-service';
 
 async function main() {
   console.log('🔍 Buscando dados do repositório...\n');
 
   try {
     // Buscar dados do repositório
-    const repoData = await getRepositoryDataService.getRepositoryData();
+    const repoData = await zipRepositoryService.getRepositoryData();
 
     if (!repoData) {
       console.error('❌ Falha ao buscar dados do repositório');
