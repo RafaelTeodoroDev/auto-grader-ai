@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import codeSearchService from '../services/code-search-service';
-import { generateText } from 'ai';
+import { generateObject, generateText } from 'ai';
 import { openRouter } from '../configs/open-router';
 import { helpDeskProject } from '../services/mocks/project';
 
@@ -86,100 +86,146 @@ export const checkBestPractices: any = {
     // Analisar com IA
     const analysisPrompt = `Você é um especialista em qualidade de código. Analise o código completo do repositório quanto às seguintes boas práticas:
 
-**Requisitos de Boas Práticas do Projeto:**
-${helpDeskProject.instruction_detail.best_praticies}
+    **Requisitos de Boas Práticas do Projeto:**
+    ${helpDeskProject.instruction_detail.best_praticies}
 
----
+    ---
 
-## CÓDIGO COMPLETO DO REPOSITÓRIO:
+    **INSTRUÇÕES IMPORTANTES:**
 
-${codeContext}
+    Os requisitos de boas práticas estão organizados em 5 CATEGORIAS principais:
+    1. **Qualidade de Código** (7 subtópicos)
+    2. **Organização e Estrutura** (4 subtópicos)
+    3. **Documentação e Legibilidade** (4 subtópicos)
+    4. **Testes** (3 subtópicos)
+    5. **Segurança** (5 subtópicos)
 
----
+    **PROCESSO DE ANÁLISE:**
 
-**INSTRUÇÕES IMPORTANTES:**
+    Você irá receber o código completo do repositório através das mensagens do usuário.
 
-Os requisitos de boas práticas estão organizados em 5 CATEGORIAS principais:
-1. **Qualidade de Código** (7 subtópicos)
-2. **Organização e Estrutura** (4 subtópicos)
-3. **Documentação e Legibilidade** (4 subtópicos)
-4. **Testes** (3 subtópicos)
-5. **Segurança** (5 subtópicos)
+    ⚠️ CRÍTICO: Você DEVE analisar e retornar TODAS AS 5 CATEGORIAS listadas acima.
 
-**PROCESSO DE ANÁLISE:**
+    Para CADA UMA DAS 5 CATEGORIAS, você deve:
+    1. Analisar internamente TODOS os subtópicos da categoria
+    2. Atribuir mentalmente um score (0-100) para cada subtópico
+    3. Calcular a MÉDIA desses scores
+    4. Retornar o resultado consolidado da categoria
 
-Para cada categoria, você deve:
-1. Analisar internamente TODOS os subtópicos da categoria
-2. Atribuir mentalmente um score (0-100) para cada subtópico
-3. Calcular a MÉDIA desses scores
-4. Retornar APENAS o resultado consolidado da categoria
+    ---
 
----
+    **FORMATO DE RESPOSTA OBRIGATÓRIO:**
 
-**FORMATO DE RESPOSTA OBRIGATÓRIO:**
+    <critical_json_formatting_rules>
+    - You MUST return ONLY valid JSON that can be parsed without errors.
+    - All string values MUST be properly escaped (use \\" for quotes inside JSON strings).
+    - ALL special characters MUST follow strict JSON escaping rules.
+    - Do NOT truncate the response — include ALL 5 categories.
+    - The final JSON MUST be complete, well-formed, and syntactically valid.
+    </critical_json_formatting_rules> 
 
-# [Nome da Categoria]
-**Score da Categoria: [0-100]** ← Este é o único score que deve aparecer (média de todos os subtópicos)
+    ⚠️ IMPORTANTE: O exemplo abaixo mostra APENAS UMA categoria para ilustrar o formato. 
+    Você DEVE retornar TODAS AS 5 CATEGORIAS no array "categories":
 
-## Análise Consolidada:
-- **Status Geral**: [✅ CONFORME / ⚠️ PARCIAL / ❌ NÃO CONFORME]
-- **Principais Evidências**: 
-  - [Arquivo:Linha] - [Exemplo de boa prática encontrada]
-  - [Arquivo:Linha] - [Outro exemplo positivo]
-- **Principais Problemas**: 
-  - [Arquivo:Linha] - [Problema mais crítico encontrado]
-  - [Arquivo:Linha] - [Outro problema relevante]
-- **Recomendações Prioritárias**: 
-  - [Ação específica mais importante]
-  - [Segunda ação prioritária]
-- **Resumo**: [Breve resumo (2-3 linhas) sobre o estado geral desta categoria no código analisado]
+    1. Qualidade de Código
+    2. Organização e Estrutura
+    3. Documentação e Legibilidade
+    4. Testes
+    5. Segurança
 
----
+    Exemplo de estrutura (você deve preencher com TODAS as 5 categorias):
+    
+    {
+      "categories": [
+        {
+          "title": "Qualidade de Código",
+          "score": 85,
+          "status": "CONFORME",
+          "keyEvidences": [
+            "src/database/prismaClient.ts:3 - Uso consistente de const/let em todo o código",
+            "src/database/repositories/interfaces/IClientRepository.ts - Interfaces bem definidas"
+          ],
+          "mainProblems": [
+            "src/modules/account/authenticateClient/AuthenticateClientUseCase.ts:13-35 - Violação do Single Responsibility Principle",
+            "Nenhum uso do Zod para validação encontrado no código"
+          ],
+          "recommendations": [
+            "Implementar Zod para validação de inputs em todos os endpoints",
+            "Separar responsabilidades nos UseCases, extraindo geração de token para serviço específico"
+          ]
+        },
+        {
+          "title": "Organização e Estrutura",
+          ... análise da segunda categoria ...
+        },
+        {
+          "title": "Documentação e Legibilidade",
+          ... análise da terceira categoria ...
+        },
+        {
+          "title": "Testes",
+          ... análise da quarta categoria ...
+        },
+        {
+          "title": "Segurança",
+          ... análise da quinta categoria ...
+        }
+      ]
+    }
 
-**EXEMPLO DE RESPOSTA ESPERADA:**
+    ---
 
-# Qualidade de Código
-**Score da Categoria: 72**
+    **REGRAS IMPORTANTES:**
+    1. SEMPRE retorne EXATAMENTE 5 objetos no array "categories" (um para cada categoria listada)
+    2. NÃO mostre scores individuais de subtópicos - apenas o score final da categoria
+    3. O score da categoria deve ser a média aritmética de todos os subtópicos analisados
+    4. Status: CONFORME (score >= 80), PARCIAL (50-79), NÃO CONFORME (< 50)
+    5. Cite sempre arquivos e linhas específicas nas evidências e problemas
+    6. Seja conciso - foque nos pontos mais relevantes
+    7. O exemplo acima é apenas ilustrativo - você DEVE analisar TODAS as 5 categorias
 
-## Análise Consolidada:
-- **Status Geral**: ⚠️ PARCIAL
-- **Principais Evidências**: 
-  - src/database/prismaClient.ts:3 - Uso consistente de const/let em todo o código
-  - src/database/repositories/interfaces/IClientRepository.ts - Interfaces bem definidas
-- **Principais Problemas**: 
-  - src/modules/account/authenticateClient/AuthenticateClientUseCase.ts:13-35 - Violação do Single Responsibility Principle
-  - Nenhum uso do Zod para validação encontrado no código
-- **Recomendações Prioritárias**: 
-  - Implementar Zod para validação de inputs em todos os endpoints
-  - Separar responsabilidades nos UseCases, extraindo geração de token para serviço específico
-- **Resumo**: O código apresenta boas práticas em nomenclatura e uso de const/let, mas precisa melhorar na separação de responsabilidades, redução de duplicação e implementação de validação com Zod.
-
----
-
-**REGRAS IMPORTANTES:**
-1. NÃO mostre scores individuais de subtópicos - apenas o score final da categoria
-2. O score da categoria deve ser a média aritmética de todos os subtópicos analisados
-3. Cite sempre arquivos e linhas específicas nas evidências e problemas
-4. Seja conciso - foque nos pontos mais relevantes
-5. Mantenha o formato exato especificado acima
-6. Ao final você terá APENAS 5 scores (um por categoria)
-
-Comece a análise agora:`;
+    Comece a análise agora:`;
 
     console.log(`\n🤖 Gerando análise detalhada com IA...\n`);
 
-    const analysis = await generateText({
-      model: openRouter('anthropic/claude-3.5-sonnet'),
-      prompt: analysisPrompt,
-      temperature: 0.3,
-    });
-
-    console.log(analysis.text)
+    let analysis = null
+    try {
+      analysis = await generateObject({
+        model: openRouter('anthropic/claude-3.5-sonnet'),
+        system: analysisPrompt,
+        maxOutputTokens: 16000,
+        temperature: 0.5,
+        output: 'object',
+        messages: [
+          {
+            role: 'user',
+            content: `## CÓDIGO COMPLETO DO REPOSITÓRIO: ${codeContext}`
+          }
+        ],
+        schema: z.object({
+          categories: z.array(z.object({
+            title: z.string(),
+            score: z.number().min(0).max(100),
+            status: z.enum(['CONFORME', 'PARCIAL', 'NÃO CONFORME']),
+            keyEvidences: z.array(z.string()),
+            mainProblems: z.array(z.string()),
+            recommendations: z.array(z.string()),
+          })).min(5).max(5).describe('Deve conter exatamente 5 categorias: Qualidade de Código, Organização e Estrutura, Documentação e Legibilidade, Testes, e Segurança')
+        })
+      });
+    } catch (error) {
+      console.error('Erro ao gerar análise de boas práticas:', error);
+      return {
+        analysis: 'ERRO: Falha ao gerar análise de boas práticas. ' + (error instanceof Error ? error.message : 'Erro desconhecido.'),
+        totalChunks,
+        filesAnalyzed: Object.keys(codeByFile).length,
+      };
+    }
 
     console.log(`✅ Análise concluída!\n`);
 
     return {
-      response: analysis.text,
+      response: analysis.object.categories,
       totalChunks,
       filesAnalyzed: Object.keys(codeByFile).length,
     };

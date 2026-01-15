@@ -4,30 +4,8 @@ import zipRepositoryService from '../services/zip-repository-service';
 
 export async function GET(request: Request) {
   try {
-    // Pegar query parameter 'question' se existir
-    const { searchParams } = new URL(request.url);
-    const question = searchParams.get('question');
-
     // Buscar dados do repositório
     const repositoryData: any = await zipRepositoryService.getRepositoryData();
-
-    // Se houver uma pergunta, usar o agente de IA para analisar
-    if (question) {
-      const aiResponse = await aiAgentService.analyzeRepository(
-        repositoryData,
-        question
-      );
-
-      return NextResponse.json({
-        question,
-        answer: aiResponse.response,
-        usage: aiResponse.usage,
-        repositoryData: {
-          fileCount: Object.keys(repositoryData.filesMap).length,
-          directoryStructure: repositoryData.directoryStructure,
-        },
-      });
-    }
 
     // Se não houver pergunta, retornar análise geral
     const aiResponse = await aiAgentService.analyzeRepository(repositoryData);
@@ -36,8 +14,8 @@ export async function GET(request: Request) {
       analysis: aiResponse.response,
       usage: aiResponse.usage,
       repositoryData: {
-        fileCount: Object.keys(repositoryData.filesMap).length,
-        directoryStructure: repositoryData.directoryStructure,
+        // fileCount: Object.keys(repositoryData.filesMap).length,
+        // directoryStructure: repositoryData.directoryStructure,
       },
     });
   } catch (error) {

@@ -137,8 +137,14 @@ class ZipRepositoryService {
             strip: 1,
         });
 
-        // Limpa o arquivo ZIP após extração
-        fs.unlinkSync(zipPath);
+        // Limpa o arquivo ZIP após extração (se ainda existir)
+        try {
+            if (fs.existsSync(zipPath)) {
+                fs.unlinkSync(zipPath);
+            }
+        } catch (error) {
+            console.warn('Could not delete ZIP file:', error);
+        }
     }
 
     /**
@@ -304,6 +310,16 @@ class ZipRepositoryService {
                 }
             } catch (error) {
                 console.warn('Error cleaning up repository folder:', error);
+            }
+
+            // Remove o arquivo ZIP se ainda existir (caso de erro durante extração)
+            try {
+                const zipPath = path.join(tempFolder, 'repo.zip');
+                if (fs.existsSync(zipPath)) {
+                    fs.unlinkSync(zipPath);
+                }
+            } catch (error) {
+                console.warn('Error cleaning up ZIP file:', error);
             }
         }
     }

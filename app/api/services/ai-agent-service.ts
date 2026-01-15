@@ -30,7 +30,7 @@ SEMPRE retorne o conteúdo completo do campo "analysis" recebido da tool.`;
   async analyzeRepository(
     repositoryData: { directoryStructure: string; filesMap: Record<string, string> },
     question?: string
-  ): Promise<{ response: string; usage?: any; toolCalls?: any[] }> {
+  ): Promise<{ response: any; usage?: any; toolCalls?: any[] }> {
     const userMessage = question || `Analise este repositório e verifique se todos os requisitos de boas práticas foram atendidos.
     Execute a tool checkBestPractices e retorne APENAS o conteúdo do campo "analysis" que ela retornar, sem nenhuma modificação ou texto adicional.`;
 
@@ -58,11 +58,10 @@ SEMPRE retorne o conteúdo completo do campo "analysis" recebido da tool.`;
     };
 
     const result = await generateText(generateConfig);
-    console.log(result.toolResults, 'toolResults');
-    console.log(result.toolResults.map((tr: any) => tr.output.response).join('\n'), 'toolResults values');
+
     return {
       response: result.toolResults.length > 0
-        ? result.toolResults.map((tr: any) => tr.output.response).join('\n')
+        ? result.toolResults.map((tr: any) => tr.output.response)
         : result.text,
       usage: result.usage,
       toolCalls: result.toolCalls,
