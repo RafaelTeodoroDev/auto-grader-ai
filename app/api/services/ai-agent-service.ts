@@ -1,116 +1,72 @@
 import { generateText } from 'ai';
 import { openRouter } from '../configs/open-router';
+import { checkBestPractices } from '../tools';
 
 interface AgentOptions {
   systemPrompt?: string;
   model?: string;
   temperature?: number;
+  enableTools?: boolean;
 }
 
 class AIAgentService {
   private readonly DEFAULT_MODEL = 'anthropic/claude-3.5-sonnet';
-  private readonly DEFAULT_SYSTEM_PROMPT = `Você é um assistente de IA especializado em análise de código.
-Seu objetivo é ajudar desenvolvedores a entender e trabalhar com repositórios de código.
-Seja conciso, objetivo e técnico nas suas respostas.`;
+  private readonly DEFAULT_SYSTEM_PROMPT = `Você é um assistente de IA especializado em análise de código e requisitos de projeto.
 
-  /**
-   * Gera uma resposta do agente baseado em uma query
-   */
-  async chat(
-    userMessage: string,
-    options: AgentOptions = {}
-  ): Promise<{ response: string; usage?: any }> {
-    const {
-      systemPrompt = this.DEFAULT_SYSTEM_PROMPT,
-      model = this.DEFAULT_MODEL,
-      temperature = 0.7,
-    } = options;
+IMPORTANTE - REGRAS OBRIGATÓRIAS:
+1. Você DEVE SEMPRE chamar a tool checkBestPractices quando houver requisitos de boas práticas
+2. Não tente analisar boas práticas manualmente - SEMPRE use a tool checkBestPractices
+3. A tool checkBestPractices irá buscar o código completo e analisar automaticamente
+4. Após receber o resultado da tool, você DEVE retornar EXATAMENTE o conteúdo do campo "analysis" que a tool retornou, SEM modificações, resumos ou comentários adicionais
+5. NÃO adicione introduções como "Aqui está a análise" - apenas retorne o conteúdo puro da análise
 
-    try {
-      const result = await generateText({
-        model: openRouter(model),
-        system: systemPrompt,
-        prompt: userMessage,
-        temperature,
-      });
-
-      return {
-        response: result.text,
-        usage: result.usage,
-      };
-    } catch (error) {
-      console.error('Error generating AI response:', error);
-      throw new Error(
-        `Failed to generate response: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
-
-  /**
-   * Gera uma resposta com contexto de código
-   */
-  async chatWithCodeContext(
-    userMessage: string,
-    codeContext: string,
-    options: AgentOptions = {}
-  ): Promise<{ response: string; usage?: any }> {
-    const enhancedPrompt = `Contexto do código:
-\`\`\`
-${codeContext}
-\`\`\`
-
-Pergunta do usuário: ${userMessage}`;
-
-    return this.chat(enhancedPrompt, {
-      ...options,
-      systemPrompt:
-        options.systemPrompt ||
-        `${this.DEFAULT_SYSTEM_PROMPT}
-
-Você tem acesso ao código acima. Use-o para responder as perguntas do usuário de forma precisa.`,
-    });
-  }
+NUNCA pule a chamada da tool checkBestPractices quando houver requisitos de qualidade/boas práticas.
+SEMPRE retorne o conteúdo completo do campo "analysis" recebido da tool.`;
 
   /**
    * Analisa um repositório e fornece insights
+   * Agora com suporte automático a tools para análise de boas práticas
    */
   async analyzeRepository(
     repositoryData: { directoryStructure: string; filesMap: Record<string, string> },
     question?: string
-  ): Promise<{ response: string; usage?: any }> {
-    const filesList = Object.keys(repositoryData.filesMap).join('\n- ');
-    const sampleFiles = Object.entries(repositoryData.filesMap)
-      .slice(0, 5)
-      .map(([name, content]) => `### ${name}\n\`\`\`\n${content.slice(0, 500)}...\n\`\`\``)
-      .join('\n\n');
+  ): Promise<{ response: string; usage?: any; toolCalls?: any[] }> {
+    const userMessage = question || `Analise este repositório e verifique se todos os requisitos de boas práticas foram atendidos.
+    Execute a tool checkBestPractices e retorne APENAS o conteúdo do campo "analysis" que ela retornar, sem nenhuma modificação ou texto adicional.`;
 
-    const prompt = question
-      ? `Analisando o repositório. Estrutura:
-        ${repositoryData.directoryStructure}
+    // Criar uma versão modificada da tool que inclui o filesMap
+    const checkBestPracticesWithData = {
+      description: checkBestPractices.description,
+      parameters: checkBestPractices.parameters,
+      execute: async (params: any) => {
+        return checkBestPractices.execute({
+          ...params,
+          filesMap: repositoryData.filesMap,
+        });
+      },
+    };
 
-        Arquivos disponíveis:
-        - ${filesList}
-
-        Amostra de alguns arquivos:
-        ${sampleFiles}
-
-        Pergunta: ${question}`
-      : `Analisando o repositório. Estrutura:
-        ${repositoryData.directoryStructure}
-
-        Arquivos disponíveis:
-        - ${filesList}
-
-        Amostra de alguns arquivos:
-        ${sampleFiles}
-
-        Forneça uma análise geral do repositório: tecnologias usadas, estrutura, propósito aparente.`;
-
-    return this.chat(prompt, {
-      systemPrompt: `Você é um especialista em análise de repositórios de código.
-Analise a estrutura, identifique padrões, tecnologias e forneça insights úteis.`,
+    const generateConfig: any = {
+      model: openRouter(this.DEFAULT_MODEL),
+      system: this.DEFAULT_SYSTEM_PROMPT,
+      prompt: userMessage,
       temperature: 0.5,
-    });
+      tools: {
+        checkBestPractices: checkBestPracticesWithData,
+      },
+      maxSteps: 5,
+    };
+
+    const result = await generateText(generateConfig);
+    console.log(result.toolResults, 'toolResults');
+    console.log(result.toolResults.map((tr: any) => tr.output.response).join('\n'), 'toolResults values');
+    return {
+      response: result.toolResults.length > 0
+        ? result.toolResults.map((tr: any) => tr.output.response).join('\n')
+        : result.text,
+      usage: result.usage,
+      toolCalls: result.toolCalls,
+    };
   }
 }
 

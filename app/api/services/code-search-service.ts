@@ -138,6 +138,32 @@ class CodeSearchService {
 
     return result;
   }
+
+  /**
+   * Obtém toda a codebase do banco de embeddings
+   * Útil para análises completas que precisam do contexto total
+   */
+  async getAllCode(limit: number = 100): Promise<
+    Array<{
+      filename: string;
+      content: string;
+      lineStart: number;
+      lineEnd: number;
+    }>
+  > {
+    const results = await db.execute(sql`
+      SELECT 
+        filename,
+        content,
+        line_start as "lineStart",
+        line_end as "lineEnd"
+      FROM code_embeddings
+      ORDER BY filename, line_start
+      LIMIT ${limit}
+    `);
+
+    return results as any;
+  }
 }
 
 export default new CodeSearchService();
