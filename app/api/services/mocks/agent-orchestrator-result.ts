@@ -126,7 +126,7 @@ export const agentOrchestratorResult: OrchestratedResults = {
         {
           "title": "Gestão de Entregas",
           "score": 95,
-          "status": "IMPLEMENTED",
+          "status": "PARTIAL",
           "keyEvidences": [
             "src/modules/deliveries/useCases/createDelivery/CreateDeliveryController.ts:1-20 - Criação de entregas",
             "src/modules/clients/useCases/findClientDeliveries/FindClientDeliveriesController.ts:1-25 - Visualização de entregas por cliente",
