@@ -39,12 +39,27 @@ class FeedbackGeneratorAgent {
       });
 
       console.log('✅ Feedback generated successfully\n');
-      return result.text;
+      return this.stripMarkdownCodeFences(result.text);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('❌ Failed to generate feedback:', errorMessage);
       throw new Error(`Feedback generation failed: ${errorMessage}`);
     }
+  }
+
+  /**
+   * Strips markdown code fences from the generated text.
+   * Removes ```markdown or ``` at the start and ``` at the end.
+   * 
+   * @param text - Raw text that may contain markdown code fences
+   * @returns Cleaned text without code fences
+   */
+  private stripMarkdownCodeFences(text: string): string {
+    return text
+      .replace(/^```markdown\s*\n/i, '')
+      .replace(/^```\s*\n/, '')
+      .replace(/\n```\s*$/, '')
+      .trim();
   }
 
   /**
@@ -66,7 +81,7 @@ Transform structured evaluation data into pedagogical feedback in Markdown, stri
 
 ## MANDATORY FEEDBACK STRUCTURE
 
-The feedback MUST follow EXACTLY this Markdown structure. DO NOT deviate from this format:
+The feedback MUST follow EXACTLY this Markdown structure inside this blockquote below. DO NOT deviate from this format:
 
 \`\`\`markdown
 # 📊 Feedback do Projeto
