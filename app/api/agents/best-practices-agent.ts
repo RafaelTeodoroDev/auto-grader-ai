@@ -132,6 +132,43 @@ For each category above:
 
 ---
 
+## IMPORTANT: ENVIRONMENT VARIABLES FILES
+
+⚠️ CRITICAL: Do NOT flag the absence of environment variable files (.env, .env.local, etc.) as an issue.
+⚠️ It is EXPECTED and BEST PRACTICE that students do NOT commit these files to Git repositories.
+⚠️ This applies to environment files in ANY programming language (.env, .env.local, appsettings.json with secrets, config.yml with secrets, etc.)
+
+Documentation/example files ARE allowed and encouraged:
+✅ .env.example, .env.sample, .env.template (Node.js/JavaScript)
+✅ appsettings.example.json (C#/.NET)
+✅ config.example.yml, config.sample.yml (various languages)
+✅ Any file with .example, .sample, .template suffix or similar naming that documents required configuration
+
+You may:
+✅ Check if environment variables are USED in the code (process.env, configuration objects, etc.)
+✅ Recommend creating documentation files like .env.example (if missing and would be helpful)
+✅ Flag hardcoded secrets/credentials in the code itself - this SHOULD negatively impact the score
+✅ Verify the presence of .env.example or similar documentation files
+
+You must NOT:
+❌ Flag missing .env, .env.local, .env.production or similar actual environment files as issues
+❌ Penalize scores for absence of actual environment files (but DO penalize for hardcoded secrets)
+❌ Add recommendations to "create .env file" or "implement .env"
+❌ List "Não há implementação de variáveis de ambiente (.env)" as a mainIssue
+
+Scoring guidance:
+- Absence of actual .env files: NO score impact (this is correct behavior)
+- Hardcoded secrets in code: SHOULD reduce score significantly
+- Missing .env.example documentation: MAY suggest as improvement (minor impact)
+
+Example of CORRECT vs INCORRECT feedback:
+✅ CORRECT: "Recomenda-se criar um arquivo .env.example para documentar as variáveis necessárias"
+✅ CORRECT: "Chave secreta hardcoded no código - deve ser movida para variável de ambiente"
+❌ INCORRECT: "Não há implementação de variáveis de ambiente (.env)"
+❌ INCORRECT: "Falta arquivo .env"
+
+---
+
 ## CRITICAL OUTPUT RULES
 
 ⚠️ Return ONLY valid JSON (no markdown fences, no explanations)
