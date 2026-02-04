@@ -122,7 +122,7 @@ For each category above:
    - Quality of the solution
 
 4. **Determine status**:
-   - "IMPLEMENTED": score >= 95 (all or nearly all requirements implemented)
+   - "IMPLEMENTED": score >= 95 (all requirements implemented, with or without minor recommendations)
    - "PARTIAL": score 50-94 (some requirements implemented, others missing)
    - "NOT_IMPLEMENTED": score < 50 (most requirements not found)
 
