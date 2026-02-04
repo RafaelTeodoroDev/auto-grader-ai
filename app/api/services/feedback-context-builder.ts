@@ -87,11 +87,25 @@ type DomainResult = {
 // ============================================================================
 
 /**
+ * Extracts description from a file reference evidence string
+ * Pattern: "path/to/file.ts:1-20 - Description text" -> "Description text"
+ * If no file reference pattern found, returns the original string
+ */
+function extractEvidenceDescription(evidence: string): string {
+  const parts = evidence.split(' - ');
+  if (parts.length >= 2) {
+    return parts.slice(1).join(' - ').trim();
+  }
+  return evidence;
+}
+
+/**
  * Extracts strengths from category key evidences
  * Each evidence becomes one strength statement
+ * File references are converted to just the description
  */
 function extractStrengths(categories: Category[]): string[] {
-  return categories.flatMap(cat => cat.keyEvidences);
+  return categories.flatMap(cat => cat.keyEvidences.map(extractEvidenceDescription));
 }
 
 /**
