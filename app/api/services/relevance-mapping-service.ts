@@ -121,8 +121,12 @@ class RelevanceMappingService {
   private readonly AGENT_MODEL = 'anthropic/claude-3-haiku';
 
   /**
-   * Main entry point for hybrid relevance mapping
-   * Combines embedding-based filtering with LLM assessment
+   * Main entry point for hybrid relevance mapping.
+   * Combines embedding-based filtering with LLM assessment to determine file relevance.
+   * 
+   * @param input - The input containing filtered files, content summaries, and normalized requirements
+   * @returns Promise<RelevanceMappingResult> - The final relevance mapping with hybrid scores
+   * @throws Error if the relevance mapping process fails
    */
   async execute(input: RelevanceMappingInput): Promise<RelevanceMappingResult> {
     const { filteredFilesMap, filesContentSummary, normalizedRequirements, options } = input;
@@ -176,6 +180,15 @@ class RelevanceMappingService {
   // PHASE 1: EMBEDDING-BASED FILTERING
   // ============================================================================
 
+  /**
+   * Phase 1: Embedding-based filtering.
+   * Generates embeddings for files and requirements, then computes similarity scores.
+   * 
+   * @param filteredFilesMap - Map of file paths to their content
+   * @param normalizedRequirements - Normalized requirements grouped by type
+   * @param config - Configuration options for the embedding phase
+   * @returns Promise<EmbeddingPhaseResult> - Top candidates for each requirement type
+   */
   private async embeddingPhase(
     filteredFilesMap: Record<string, string>,
     normalizedRequirements: NormalizedRequirements,
@@ -200,6 +213,13 @@ class RelevanceMappingService {
     return candidates;
   }
 
+  /**
+   * Generates embeddings for each requirement category.
+   * 
+   * @param normalizedRequirements - Normalized requirements grouped by type
+   * @param config - Configuration options
+   * @returns Promise<Record<string, Array<{ category: string; embedding: number[] }>>> - Embeddings for each category by requirement type
+   */
   private async generateCategoryEmbeddings(
     normalizedRequirements: NormalizedRequirements,
     config: Required<HybridOptions>
@@ -221,6 +241,13 @@ class RelevanceMappingService {
     return categoryEmbeddings;
   }
 
+  /**
+   * Generates embeddings for all files in parallel batches.
+   * 
+   * @param filteredFilesMap - Map of file paths to their content
+   * @param config - Configuration options including batch size and token limits
+   * @returns Promise<Array<{ path: string; embedding: number[] }>> - Array of file embeddings
+   */
   private async generateFileEmbeddings(
     filteredFilesMap: Record<string, string>,
     config: Required<HybridOptions>
@@ -248,6 +275,13 @@ class RelevanceMappingService {
     return fileEmbeddings;
   }
 
+  /**
+   * Computes cosine similarity between file embeddings and category embeddings.
+   * 
+   * @param fileEmbeddings - Array of file embeddings
+   * @param categoryEmbeddings - Embeddings for each requirement category
+   * @returns Record<string, Record<string, number>> - Similarity scores for each file by requirement type
+   */
   private computeSimilarities(
     fileEmbeddings: Array<{ path: string; embedding: number[] }>,
     categoryEmbeddings: Record<string, Array<{ category: string; embedding: number[] }>>
@@ -270,6 +304,13 @@ class RelevanceMappingService {
     return similarities;
   }
 
+  /**
+   * Selects top candidates based on similarity scores with adaptive thresholding.
+   * 
+   * @param similarities - Similarity scores for each file by requirement type
+   * @param config - Configuration options including thresholds and topK
+   * @returns EmbeddingPhaseResult - Top candidates for each requirement type
+   */
   private selectTopCandidates(
     similarities: Record<string, Record<string, number>>,
     config: Required<HybridOptions>
@@ -306,6 +347,14 @@ class RelevanceMappingService {
     return result;
   }
 
+  /**
+   * Filters and sorts files by similarity threshold, returning top K candidates.
+   * 
+   * @param fileSims - Map of file paths to similarity scores
+   * @param threshold - Minimum similarity score to include
+   * @param topK - Maximum number of candidates to return
+   * @returns FileCandidate[] - Filtered and sorted candidates
+   */
   private filterAndSortByThreshold(
     fileSims: Record<string, number>,
     threshold: number,
@@ -322,6 +371,16 @@ class RelevanceMappingService {
   // PHASE 2: LLM ASSESSMENT
   // ============================================================================
 
+  /**
+   * Phase 2: LLM assessment.
+   * Uses an LLM to assess the relevance of candidate files with retry logic.
+   * 
+   * @param filesContentSummary - Summaries of file contents
+   * @param normalizedRequirements - Normalized requirements grouped by type
+   * @param phase1Results - Results from the embedding phase
+   * @param config - Configuration options
+   * @returns Promise<LLMPhaseResult> - LLM assessments for each file
+   */
   private async llmPhase(
     filesContentSummary: FileSummary[],
     normalizedRequirements: NormalizedRequirements,
@@ -396,6 +455,12 @@ class RelevanceMappingService {
     return this.createFallbackAssessment(phase1Results);
   }
 
+  /**
+   * Builds a system prompt for retry attempts with stronger instructions.
+   * 
+   * @param attempt - The current retry attempt number (2 or 3)
+   * @returns string - The retry system prompt
+   */
   private buildRetrySystemPrompt(attempt: number): string {
     const basePrompt = this.buildSystemPrompt();
     
@@ -406,6 +471,13 @@ class RelevanceMappingService {
     return basePrompt + `\n\n## FINAL ATTEMPT (Attempt 3)\n\nThis is your last chance. The system requires valid JSON. If you cannot produce valid JSON, the process will fail.\n\nREMEMBER:\n- Start with {\n- End with }\n- NO text before or after\n- NO markdown\n- Just pure JSON`;
   }
 
+  /**
+   * Builds a user prompt for retry attempts with simplified instructions.
+   * 
+   * @param filesContentSummary - Summaries of file contents to assess
+   * @param attempt - The current retry attempt number (2 or 3)
+   * @returns string - The retry user prompt
+   */
   private buildRetryUserPrompt(filesContentSummary: FileSummary[], attempt: number): string {
     const totalFiles = filesContentSummary.length;
     
@@ -416,6 +488,13 @@ class RelevanceMappingService {
     return `ATTEMPT 3 - LAST CHANCE:\n\nReturn valid JSON for these ${totalFiles} files:\n${filesContentSummary.map(f => f.path).join('\n')}\n\nJSON format required as shown in system instructions.`;
   }
 
+  /**
+   * Validates that the LLM output contains all expected files.
+   * 
+   * @param output - The LLM phase result to validate
+   * @param expectedPaths - Set of file paths that should be in the output
+   * @throws Error if files are missing or extra files are present
+   */
   private validateLlmOutput(output: LLMPhaseResult, expectedPaths: Set<string>): void {
     const allPaths = new Set([
       ...output.best_practices.map(f => f.path),
@@ -439,6 +518,13 @@ class RelevanceMappingService {
     }
   }
 
+  /**
+   * Creates a fallback assessment when LLM calls fail.
+   * Assigns assessments based on embedding scores.
+   * 
+   * @param phase1Results - Results from the embedding phase
+   * @returns LLMPhaseResult - Fallback assessments for all files
+   */
   private createFallbackAssessment(phase1Results: EmbeddingPhaseResult): LLMPhaseResult {
     console.log('⚠️  Using fallback: Marking all files as SECONDARY based on embedding scores');
     
@@ -454,6 +540,11 @@ class RelevanceMappingService {
     };
   }
 
+  /**
+   * Builds the system prompt for the LLM assessment.
+   * 
+   * @returns string - The system prompt with instructions and format requirements
+   */
   private buildSystemPrompt(): string {
     return `You are a specialized agent for assessing file relevance to requirement categories.
 
@@ -513,6 +604,14 @@ Use these as signals, not absolute truth. A high score file might still be IRREL
 6. The JSON must be parseable and complete`;
   }
 
+  /**
+   * Builds the user prompt for the LLM assessment.
+   * 
+   * @param filesContentSummary - Summaries of file contents
+   * @param normalizedRequirements - Normalized requirements grouped by type
+   * @param phase1Results - Results from the embedding phase including scores
+   * @returns string - The user prompt with task and file information
+   */
   private buildUserPrompt(
     filesContentSummary: FileSummary[],
     normalizedRequirements: NormalizedRequirements,
@@ -543,6 +642,15 @@ INSTRUCTIONS:
   // PHASE 3: HYBRID SCORING & FILTERING
   // ============================================================================
 
+  /**
+   * Phase 3: Hybrid scoring and filtering.
+   * Combines embedding scores with LLM assessments to compute final hybrid scores.
+   * 
+   * @param phase1Results - Results from the embedding phase
+   * @param phase2Results - Results from the LLM assessment phase
+   * @param config - Configuration options
+   * @returns Omit<RelevanceMappingResult, 'metadata'> - Final scored results without metadata
+   */
   private hybridScoringPhase(
     phase1Results: EmbeddingPhaseResult,
     phase2Results: LLMPhaseResult,
@@ -577,6 +685,13 @@ INSTRUCTIONS:
     return result;
   }
 
+  /**
+   * Merges Phase 1 and Phase 2 results, adding LLM assessments to file candidates.
+   * 
+   * @param phase1Files - File candidates from the embedding phase
+   * @param phase2Files - LLM assessments for files
+   * @returns FileCandidate[] - Merged candidates with LLM assessments
+   */
   private mergePhaseResults(
     phase1Files: FileCandidate[],
     phase2Files: Array<{ path: string; assessment: LLMAssessment }>
@@ -592,6 +707,12 @@ INSTRUCTIONS:
     });
   }
 
+  /**
+   * Computes the hybrid score by combining embedding score with LLM assessment weight.
+   * 
+   * @param file - File candidate with embedding score and optional LLM assessment
+   * @returns HybridScoredFile - File with computed hybrid score
+   */
   private computeHybridScore(
     file: FileCandidate
   ): HybridScoredFile {
@@ -609,6 +730,14 @@ INSTRUCTIONS:
   // UTILITY METHODS
   // ============================================================================
 
+  /**
+   * Truncates content to approximate token limit.
+   * Uses a simple approximation of 1 token ≈ 4 characters.
+   * 
+   * @param content - The content to truncate
+   * @param maxTokens - Maximum number of tokens allowed
+   * @returns string - Truncated content
+   */
   private truncateToTokenLimit(content: string, maxTokens: number): string {
     // Simple approximation: 1 token ≈ 4 characters
     const maxChars = maxTokens * 4;
@@ -617,6 +746,12 @@ INSTRUCTIONS:
       : content;
   }
 
+  /**
+   * Generates an embedding vector for the given text using the configured embedding model.
+   * 
+   * @param text - The text to embed
+   * @returns Promise<number[]> - The embedding vector
+   */
   private async generateEmbedding(text: string): Promise<number[]> {
     const { embedding } = await embed({
       model: openRouter.textEmbeddingModel(this.EMBEDDING_MODEL),
@@ -625,6 +760,13 @@ INSTRUCTIONS:
     return embedding;
   }
 
+  /**
+   * Calculates cosine similarity between two vectors.
+   * 
+   * @param vecA - First vector
+   * @param vecB - Second vector
+   * @returns number - Cosine similarity score between -1 and 1
+   */
   private cosineSimilarity(vecA: number[], vecB: number[]): number {
     const dotProduct = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
     const magnitudeA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
@@ -632,12 +774,24 @@ INSTRUCTIONS:
     return dotProduct / (magnitudeA * magnitudeB);
   }
 
+  /**
+   * Builds a query string for a requirement category to be used for embedding.
+   * 
+   * @param category - The requirement category with title, keywords, and requirements
+   * @returns string - The constructed query string
+   */
   private buildCategoryQuery(category: RequirementCategory): string {
     const requirements = category.requirements.slice(0, 5).join('. ');
     const keywords = category.keywords.join(', ');
     return `${category.title}. Keywords: ${keywords}. Requirements: ${requirements}`;
   }
 
+  /**
+   * Formats normalized requirements into a readable string for prompts.
+   * 
+   * @param normalizedRequirements - Normalized requirements grouped by type
+   * @returns string - Formatted requirements string
+   */
   private formatNormalizedRequirements(normalizedRequirements: NormalizedRequirements): string {
     const sections: string[] = [];
 
@@ -655,6 +809,12 @@ INSTRUCTIONS:
     return sections.join('\n\n---\n\n');
   }
 
+  /**
+   * Formats file summaries into a readable string for prompts.
+   * 
+   * @param filesContentSummary - Array of file summaries
+   * @returns string - Formatted file summaries string
+   */
   private formatFilesSummaries(filesContentSummary: FileSummary[]): string {
     return filesContentSummary.map(file => {
       const imports = file.summary.imports.length > 0 
@@ -665,6 +825,12 @@ INSTRUCTIONS:
     }).join('\n\n---\n\n');
   }
 
+  /**
+   * Formats embedding scores into a readable string for prompts.
+   * 
+   * @param phase1Results - Results from the embedding phase
+   * @returns string - Formatted embedding scores string
+   */
   private formatEmbeddingScores(phase1Results: EmbeddingPhaseResult): string {
     const sections: string[] = [];
 
@@ -677,12 +843,24 @@ INSTRUCTIONS:
     return sections.join('\n\n');
   }
 
+  /**
+   * Counts the total number of candidates across all requirement types.
+   * 
+   * @param result - The phase result containing candidates
+   * @returns number - Total count of candidates
+   */
   private countCandidates(result: EmbeddingPhaseResult | LLMPhaseResult): number {
     return result.best_practices.length + 
            result.functional_requirements.length + 
            result.non_functional_requirements.length;
   }
 
+  /**
+   * Counts the total number of included files across all requirement types.
+   * 
+   * @param result - The final results containing scored files
+   * @returns number - Total count of included files
+   */
   private countIncluded(result: Omit<RelevanceMappingResult, 'metadata'>): number {
     return result.best_practices.length +
            result.functional_requirements.length +
