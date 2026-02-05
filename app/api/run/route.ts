@@ -58,11 +58,6 @@ export async function GET(request: Request) {
     console.log(`   - Functional: ${relevanceMappingResult.functional_requirements?.length || 0} files`);
     console.log(`   - Non-Functional: ${relevanceMappingResult.non_functional_requirements?.length || 0} files\n`);
 
-    // Return orchestrator results for validation
-    // return NextResponse.json({
-    //   relevanceMappingResult,
-    // });
-
     // Step 5: Orchestrate agents
     console.log('🎯 Step 5: Orchestrating evaluation agents...');
     const orchestratorResults = await agentOrchestratorService.orchestrate({
