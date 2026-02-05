@@ -56,13 +56,26 @@ interface RelevanceMappingResult {
 }
 
 interface HybridOptions {
-  // Phase 1: Embedding
+  /** Maximum number of top candidates to select from embedding phase (default: 20) */
   embeddingTopK?: number;
+  
+  /** Minimum similarity score threshold for embedding phase (default: 0.55) */
   embeddingThreshold?: number;
+  
+  /** Fallback thresholds for adaptive retry when candidate count is too low */
   embeddingRetryThresholds?: number[];
+  
+  /** Minimum number of candidates required to proceed to LLM phase (default: 10) */
   minCandidatesForPhase2?: number;
+  
+  /** Maximum tokens per file for embedding generation (default: 6000) */
   maxTokensPerFile?: number;
+  
+  /** Number of files to process in parallel during embedding (default: 10) */
   parallelBatchSize?: number;
+  
+  /** Minimum hybrid score threshold - files with scores below this will be filtered out (default: 0.20) */
+  hybridScoreThreshold?: number;
 }
 
 interface RelevanceMappingInput {
@@ -91,6 +104,9 @@ const DEFAULT_OPTIONS: Required<HybridOptions> = {
   minCandidatesForPhase2: 10,
   maxTokensPerFile: 6000,
   parallelBatchSize: 10,
+  
+  // Phase 3: Hybrid Scoring
+  hybridScoreThreshold: 0.20,
 };
 
 // ============================================================================
@@ -677,9 +693,12 @@ INSTRUCTIONS:
       // Sort by hybrid score
       scored.sort((a, b) => b.hybridScore - a.hybridScore);
 
-      result[reqType] = scored;
+      // Filter files below the threshold
+      const filtered = scored.filter(file => file.hybridScore >= config.hybridScoreThreshold);
 
-      console.log(`  ✓ ${reqType}: ${scored.length} files included`);
+      result[reqType] = filtered;
+
+      console.log(`  ✓ ${reqType}: ${filtered.length} files included (filtered ${scored.length - filtered.length} below threshold)`);
     }
 
     return result;

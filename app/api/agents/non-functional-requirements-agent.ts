@@ -139,6 +139,35 @@ For each category above:
 
 ---
 
+## OUTPUT FIELD DEFINITIONS
+
+When populating the output for each category, follow these guidelines:
+
+**keyEvidences** (array of strings):
+- Include ONLY files/requirements that the user successfully implemented
+- Each item should reference a specific file:line where the requirement is satisfied
+- If a requirement is missing or not implemented, do NOT include it here
+- Write in Portuguese PT-BR
+- Example: "src/auth.ts:15-20 - Funcionalidade de login implementada conforme requisito"
+
+**mainIssues** (array of strings):
+- Include ONLY requirements that are specified in the requirements but NOT found/implemented in the code
+- If the issue is related to a specific file, reference it with file:line format
+- If the issue is generic and not tied to a specific file, write without file reference
+- Write in Portuguese PT-BR
+- Examples:
+  - With file reference: "src/auth.ts:15-20 - Funcionalidade de Login não usou JWT"
+  - Without file reference: "Não implementou cadastro de clientes"
+
+**recommendations** (array of strings):
+- Provide actionable suggestions to fix the items listed in mainIssues
+- Each recommendation should guide the user on how to implement the missing requirement
+- Focus on practical, specific steps the user should take
+- Write in Portuguese PT-BR
+- Example: "Implementar funcionalidade de reset de senha usando tokens temporários"
+
+---
+
 ## IMPORTANT: ENVIRONMENT VARIABLES FILES
 
 ⚠️ CRITICAL: Do NOT flag the absence of environment variable files (.env, .env.local, etc.) as an issue.

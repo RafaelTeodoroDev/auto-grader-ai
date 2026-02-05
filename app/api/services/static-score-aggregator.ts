@@ -82,9 +82,9 @@ export interface AggregatedScoreResult {
  * Base weights for each domain before normalization
  */
 const DOMAIN_WEIGHTS = {
-  best_practices: 0.35,
-  functional_requirements: 0.45,
-  non_functional_requirements: 0.20,
+  best_practices: 0.15,
+  functional_requirements: 0.60,
+  non_functional_requirements: 0.25,
 } as const;
 
 // ============================================================================

@@ -262,7 +262,7 @@ You must generate EXACTLY this structure:
 ## Visão Geral
 [Write 2-3 sentences of general project evaluation here based on the score and status]
 
-- **Nota Final:** [finalScore]
+- **Nota Final:** [finalScore, between 0 and 100]
 - **Status:** [finalStatus]
 - **Pontos Fortes:** [Synthesize 2-4 high-level strengths from the provided list, one word per strength separated by comma]
 - **Áreas de Melhoria:** [Synthesize 2-4 high-level improvement areas from the provided list, one word per improvement area separated by comma]

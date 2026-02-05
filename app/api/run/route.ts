@@ -106,7 +106,10 @@ export async function GET(request: Request) {
       score: aggregatedScore.finalScore,
       status: aggregatedScore.finalStatus,
       domainScores: aggregatedScore.domainScores,
-      metadata: aggregatedScore.metadata
+      metadata: aggregatedScore.metadata,
+      requirementsNormalizationResult,
+      orchestratorResults,
+      relevanceMappingResult
     });
 
   } catch (error) {
