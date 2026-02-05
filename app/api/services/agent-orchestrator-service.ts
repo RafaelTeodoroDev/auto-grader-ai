@@ -17,7 +17,6 @@ interface HybridScoredFile {
   embeddingScore: number;
   llmAssessment: 'PRIMARY' | 'SECONDARY' | 'SUPPORTING' | 'IRRELEVANT';
   hybridScore: number;
-  included: boolean;
 }
 
 interface RelevanceMappingResult {
@@ -177,8 +176,8 @@ class AgentOrchestratorService {
     const relevant: Record<string, string> = {};
     
     for (const file of scoredFiles) {
-      // Only include files marked as included and present in filesMap
-      if (file.included && filesMap[file.path]) {
+      // Include files present in filesMap
+      if (filesMap[file.path]) {
         relevant[file.path] = filesMap[file.path];
       }
     }

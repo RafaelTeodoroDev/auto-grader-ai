@@ -29,7 +29,6 @@ interface FileCandidate {
 interface HybridScoredFile extends FileCandidate {
   llmAssessment: LLMAssessment;
   hybridScore: number;
-  included: boolean;
 }
 
 interface EmbeddingPhaseResult {
@@ -64,10 +63,6 @@ interface HybridOptions {
   minCandidatesForPhase2?: number;
   maxTokensPerFile?: number;
   parallelBatchSize?: number;
-  
-  // Phase 3: Hybrid Filtering
-  minEmbeddingScore?: number;
-  minHybridScore?: number;
 }
 
 interface RelevanceMappingInput {
@@ -96,10 +91,6 @@ const DEFAULT_OPTIONS: Required<HybridOptions> = {
   minCandidatesForPhase2: 10,
   maxTokensPerFile: 6000,
   parallelBatchSize: 10,
-  
-  // Phase 3: Hybrid Filtering
-  minEmbeddingScore: 0.25,
-  minHybridScore: 0.4,
 };
 
 // ============================================================================
@@ -573,15 +564,14 @@ INSTRUCTIONS:
       const merged = this.mergePhaseResults(phase1Files, phase2Files);
 
       // Compute hybrid scores
-      const scored = merged.map(file => this.computeHybridScore(file, config));
+      const scored = merged.map(file => this.computeHybridScore(file));
 
       // Sort by hybrid score
       scored.sort((a, b) => b.hybridScore - a.hybridScore);
 
       result[reqType] = scored;
 
-      const included = scored.filter(f => f.included).length;
-      console.log(`  ✓ ${reqType}: ${included}/${scored.length} files included`);
+      console.log(`  ✓ ${reqType}: ${scored.length} files included`);
     }
 
     return result;
@@ -603,29 +593,16 @@ INSTRUCTIONS:
   }
 
   private computeHybridScore(
-    file: FileCandidate,
-    config: Required<HybridOptions>
+    file: FileCandidate
   ): HybridScoredFile {
     const llmAssessment = file.llmAssessment || 'IRRELEVANT';
     const hybridScore = file.embeddingScore * LLM_WEIGHT[llmAssessment];
-    
-    const included = this.shouldInclude(file, hybridScore, config);
 
     return {
       ...file,
       llmAssessment,
       hybridScore,
-      included,
     };
-  }
-
-  private shouldInclude(
-    file: FileCandidate,
-    hybridScore: number,
-    config: Required<HybridOptions>
-  ): boolean {
-    if (file.embeddingScore < config.minEmbeddingScore) return false;
-    return hybridScore >= config.minHybridScore;
   }
 
   // ============================================================================
@@ -707,9 +684,9 @@ INSTRUCTIONS:
   }
 
   private countIncluded(result: Omit<RelevanceMappingResult, 'metadata'>): number {
-    return result.best_practices.filter((f: HybridScoredFile) => f.included).length +
-           result.functional_requirements.filter((f: HybridScoredFile) => f.included).length +
-           result.non_functional_requirements.filter((f: HybridScoredFile) => f.included).length;
+    return result.best_practices.length +
+           result.functional_requirements.length +
+           result.non_functional_requirements.length;
   }
 }
 
