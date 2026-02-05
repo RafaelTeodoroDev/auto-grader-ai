@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autograder Architecture Explorer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #58a6ff;
+      margin-bottom: 8px;
+      font-size: 24px;
+    }
+
+    .subtitle {
+      color: #8b949e;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+      height: calc(100vh - 120px);
+    }
+
+    .controls-panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .control-group {
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 20px;
+    }
+
+    .control-group:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .control-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .presets {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .preset-btn {
+      padding: 10px 12px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+
+    .preset-btn:hover {
+      border-color: #58a6ff;
+      background: #1f6feb;
+    }
+
+    .preset-btn.active {
+      background: #1f6feb;
+      border-color: #58a6ff;
+    }
+
+    .layer-toggles {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .layer-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      background: #0d1117;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .layer-item:hover {
+      background: #21262d;
+    }
+
+    .layer-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .layer-name {
+      font-size: 13px;
+      color: #c9d1d9;
+      flex: 1;
+    }
+
+    .layer-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: #58a6ff;
+    }
+
+    .connection-filters {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .connection-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      background: #0d1117;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .connection-line {
+      width: 24px;
+      height: 3px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .connection-line.solid { border-top: 3px solid; }
+    .connection-line.dashed { border-top: 3px dashed; }
+    .connection-line.dotted { border-top: 3px dotted; }
+
+    .connection-name {
+      font-size: 12px;
+      color: #c9d1d9;
+      flex: 1;
+    }
+
+    .zoom-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .zoom-btn {
+      flex: 1;
+      padding: 8px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .zoom-btn:hover {
+      border-color: #58a6ff;
+      background: #1f6feb;
+    }
+
+    .comments-section {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .comment-item {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+
+    .comment-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .comment-node {
+      font-size: 12px;
+      font-weight: 600;
+      color: #58a6ff;
+    }
+
+    .comment-file {
+      font-size: 11px;
+      color: #8b949e;
+    }
+
+    .comment-text {
+      font-size: 13px;
+      color: #c9d1d9;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .comment-delete {
+      font-size: 11px;
+      color: #f85149;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    .no-comments {
+      text-align: center;
+      color: #8b949e;
+      font-size: 13px;
+      padding: 20px;
+    }
+
+    .canvas-container {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .canvas-wrapper {
+      width: 100%;
+      height: calc(100% - 180px);
+      overflow: auto;
+      position: relative;
+    }
+
+    #architecture-svg {
+      min-width: 100%;
+      min-height: 100%;
+    }
+
+    .legend {
+      position: absolute;
+      bottom: 200px;
+      left: 20px;
+      background: rgba(13, 17, 23, 0.95);
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 11px;
+    }
+
+    .legend-title {
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .prompt-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #0d1117;
+      border-top: 1px solid #30363d;
+      padding: 16px 20px;
+      max-height: 180px;
+    }
+
+    .prompt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .prompt-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c9d1d9;
+    }
+
+    .copy-btn {
+      padding: 6px 12px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .copy-btn:hover {
+      border-color: #58a6ff;
+      background: #1f6feb;
+    }
+
+    .copy-btn.copied {
+      background: #238636;
+      border-color: #3fb950;
+    }
+
+    .prompt-content {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #c9d1d9;
+      white-space: pre-wrap;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 24px;
+      width: 90%;
+      max-width: 500px;
+      transform: scale(0.9);
+      transition: transform 0.2s;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 4px;
+    }
+
+    .modal-subtitle {
+      font-size: 13px;
+      color: #8b949e;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .modal-textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 12px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #c9d1d9;
+      font-size: 14px;
+      resize: vertical;
+      margin-bottom: 16px;
+    }
+
+    .modal-textarea:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modal-btn.cancel {
+      background: transparent;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+    }
+
+    .modal-btn.cancel:hover {
+      border-color: #f85149;
+      color: #f85149;
+    }
+
+    .modal-btn.save {
+      background: #238636;
+      border: none;
+      color: #fff;
+    }
+
+    .modal-btn.save:hover {
+      background: #2ea043;
+    }
+
+    /* SVG Styles */
+    .node {
+      cursor: grab;
+      transition: all 0.2s;
+    }
+
+    .node:active {
+      cursor: grabbing;
+    }
+
+    .node:hover {
+      filter: brightness(1.1);
+    }
+
+    .node.dragging {
+      filter: brightness(1.2) drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+    }
+
+    .node-rect {
+      rx: 8;
+      ry: 8;
+      stroke-width: 2;
+      transition: all 0.2s;
+    }
+
+    .node-rect.has-comment {
+      stroke: #f0883e;
+      stroke-width: 3;
+    }
+
+    .node-label {
+      font-size: 13px;
+      font-weight: 600;
+      fill: #1f2937;
+    }
+
+    .node-subtitle {
+      font-size: 10px;
+      fill: #4b5563;
+    }
+
+    .connection {
+      fill: none;
+      stroke-width: 2;
+      transition: all 0.2s;
+    }
+
+    .connection-label {
+      font-size: 10px;
+      fill: #8b949e;
+    }
+
+    .arrow-head {
+      transition: all 0.2s;
+    }
+
+    @media (max-width: 1200px) {
+      .layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      .canvas-container {
+        height: 600px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏗️ Autograder Architecture Explorer</h1>
+    <p class="subtitle">Explore a arquitetura do sistema de avaliação automática - Arraste os componentes para reorganizar, clique para comentar</p>
+
+    <div class="layout">
+      <div class="controls-panel">
+        <div class="control-group">
+          <span class="control-label">Visualizações</span>
+          <div class="presets">
+            <button class="preset-btn active" onclick="loadPreset('full')">Sistema Completo</button>
+            <button class="preset-btn" onclick="loadPreset('pipeline')">Pipeline de Avaliação</button>
+            <button class="preset-btn" onclick="loadPreset('agents')">Sistema de Agentes</button>
+            <button class="preset-btn" onclick="loadPreset('services')">Camada de Serviços</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Camadas</span>
+          <div class="layer-toggles">
+            <div class="layer-item" onclick="toggleLayer('api')">
+              <div class="layer-color" style="background: #dbeafe;"></div>
+              <span class="layer-name">API / Routes</span>
+              <input type="checkbox" class="layer-checkbox" id="layer-api" checked>
+            </div>
+            <div class="layer-item" onclick="toggleLayer('services')">
+              <div class="layer-color" style="background: #fef3c7;"></div>
+              <span class="layer-name">Serviços</span>
+              <input type="checkbox" class="layer-checkbox" id="layer-services" checked>
+            </div>
+            <div class="layer-item" onclick="toggleLayer('agents')">
+              <div class="layer-color" style="background: #dcfce7;"></div>
+              <span class="layer-name">Agents</span>
+              <input type="checkbox" class="layer-checkbox" id="layer-agents" checked>
+            </div>
+            <div class="layer-item" onclick="toggleLayer('data')">
+              <div class="layer-color" style="background: #fce7f3;"></div>
+              <span class="layer-name">Dados / External</span>
+              <input type="checkbox" class="layer-checkbox" id="layer-data" checked>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Tipos de Conexão</span>
+          <div class="connection-filters">
+            <div class="connection-item" onclick="toggleConnectionType('data-flow')">
+              <div class="connection-line solid" style="border-color: #3b82f6;"></div>
+              <span class="connection-name">Fluxo de Dados</span>
+              <input type="checkbox" checked id="conn-data-flow">
+            </div>
+            <div class="connection-item" onclick="toggleConnectionType('orchestration')">
+              <div class="connection-line dashed" style="border-color: #10b981;"></div>
+              <span class="connection-name">Orquestração</span>
+              <input type="checkbox" checked id="conn-orchestration">
+            </div>
+            <div class="connection-item" onclick="toggleConnectionType('dependency')">
+              <div class="connection-line dotted" style="border-color: #6b7280;"></div>
+              <span class="connection-name">Dependência</span>
+              <input type="checkbox" checked id="conn-dependency">
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Zoom</span>
+          <div class="zoom-controls">
+            <button class="zoom-btn" onclick="zoomOut()">−</button>
+            <button class="zoom-btn" onclick="resetZoom()">⟲</button>
+            <button class="zoom-btn" onclick="zoomIn()">+</button>
+          </div>
+        </div>
+
+        <div class="control-group comments-section">
+          <span class="control-label">Comentários (<span id="comment-count">0</span>)</span>
+          <div id="comments-list">
+            <div class="no-comments">Clique em um componente para adicionar comentários</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-container">
+        <div style="position: absolute; top: 10px; right: 10px; background: rgba(13, 17, 23, 0.9); border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #8b949e; z-index: 10;">
+          🖱️ Arraste os componentes para reorganizar
+        </div>
+        <div class="canvas-wrapper">
+          <svg id="architecture-svg" width="1200" height="900">
+            <defs>
+              <!-- Arrow markers -->
+              <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="#3b82f6"/>
+              </marker>
+              <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="#10b981"/>
+              </marker>
+              <marker id="arrow-gray" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="#6b7280"/>
+              </marker>
+            </defs>
+            <g id="connections-layer"></g>
+            <g id="nodes-layer"></g>
+          </svg>
+        </div>
+
+        <div class="legend">
+          <div class="legend-title">Legenda</div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #3b82f6;"></div>
+            <span>Fluxo de Dados</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #10b981;"></div>
+            <span>Orquestração</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #6b7280;"></div>
+            <span>Dependência</span>
+          </div>
+        </div>
+
+        <div class="prompt-panel">
+          <div class="prompt-header">
+            <span class="prompt-title">📝 Prompt de Análise de Arquitetura</span>
+            <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">
+              <span>📋</span>
+              <span id="copy-text">Copiar Prompt</span>
+            </button>
+          </div>
+          <div class="prompt-content" id="prompt-content">
+Analise a arquitetura do sistema Autograder. O sistema é composto por múltiplas camadas: API/Routes, Serviços, Agents e Dados/External.
+
+Clique nos componentes no diagrama para adicionar comentários específicos sobre cada parte da arquitetura.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comment Modal -->
+  <div class="modal-overlay" id="comment-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">Adicionar Comentário</div>
+        <div class="modal-subtitle" id="modal-subtitle">Componente</div>
+      </div>
+      <textarea class="modal-textarea" id="modal-textarea" placeholder="Digite seu comentário sobre este componente..."></textarea>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" onclick="closeModal()">Cancelar</button>
+        <button class="modal-btn save" onclick="saveComment()">Salvar Comentário</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Architecture Data
+    const nodes = [
+      // API Layer
+      { id: 'route', label: 'GET /api/run', subtitle: 'app/api/run/route.ts', x: 550, y: 40, w: 140, h: 50, layer: 'api', color: '#dbeafe' },
+      
+      // Services Layer
+      { id: 'zip-service', label: 'Zip Repository', subtitle: 'services/zip-repository-service.ts', x: 100, y: 150, w: 160, h: 50, layer: 'services', color: '#fef3c7' },
+      { id: 'static-analyzer', label: 'Static Analyzer', subtitle: 'services/static-repo-analyzer.ts', x: 300, y: 150, w: 160, h: 50, layer: 'services', color: '#fef3c7' },
+      { id: 'req-normalizer', label: 'Req. Normalizer', subtitle: 'services/requirements-normalization-agent.ts', x: 520, y: 150, w: 180, h: 50, layer: 'services', color: '#fef3c7' },
+      { id: 'relevance-mapper', label: 'Relevance Mapper', subtitle: 'services/relevance-mapping-service.ts', x: 750, y: 150, w: 170, h: 50, layer: 'services', color: '#fef3c7' },
+      { id: 'orchestrator', label: 'Orchestrator', subtitle: 'services/agent-orchestrator-service.ts', x: 520, y: 260, w: 160, h: 50, layer: 'services', color: '#fef3c7' },
+      { id: 'score-aggregator', label: 'Score Aggregator', subtitle: 'services/static-score-aggregator.ts', x: 300, y: 370, w: 160, h: 50, layer: 'services', color: '#fef3c7' },
+      { id: 'context-builder', label: 'Context Builder', subtitle: 'services/feedback-context-builder.ts', x: 520, y: 370, w: 160, h: 50, layer: 'services', color: '#fef3c7' },
+      
+      // Agents Layer
+      { id: 'best-practices', label: 'Best Practices', subtitle: 'agents/best-practices-agent.ts', x: 200, y: 260, w: 150, h: 50, layer: 'agents', color: '#dcfce7' },
+      { id: 'functional-req', label: 'Functional Req.', subtitle: 'agents/functional-requirements-agent.ts', x: 520, y: 320, w: 160, h: 50, layer: 'agents', color: '#dcfce7' },
+      { id: 'non-functional', label: 'Non-Functional', subtitle: 'agents/non-functional-requirements-agent.ts', x: 840, y: 260, w: 160, h: 50, layer: 'agents', color: '#dcfce7' },
+      { id: 'feedback-gen', label: 'Feedback Gen.', subtitle: 'agents/feedback-generator-agent.ts', x: 520, y: 480, w: 160, h: 50, layer: 'agents', color: '#dcfce7' },
+      
+      // Data/External Layer
+      { id: 'embedding', label: 'Embedding Service', subtitle: 'services/embedding-service.ts', x: 950, y: 150, w: 160, h: 50, layer: 'data', color: '#fce7f3' },
+      { id: 'project-mock', label: 'Project Mock', subtitle: 'services/mocks/project.ts', x: 750, y: 80, w: 140, h: 50, layer: 'data', color: '#fce7f3' },
+    ];
+
+    const connections = [
+      // Route to Services
+      { from: 'route', to: 'zip-service', type: 'data-flow', label: 'Step 1' },
+      { from: 'route', to: 'static-analyzer', type: 'data-flow', label: 'Step 2' },
+      { from: 'route', to: 'req-normalizer', type: 'data-flow', label: 'Step 3' },
+      { from: 'route', to: 'relevance-mapper', type: 'data-flow', label: 'Step 4' },
+      { from: 'route', to: 'orchestrator', type: 'data-flow', label: 'Step 5' },
+      { from: 'route', to: 'score-aggregator', type: 'data-flow', label: 'Step 6' },
+      { from: 'route', to: 'context-builder', type: 'data-flow', label: 'Step 7' },
+      { from: 'route', to: 'feedback-gen', type: 'data-flow', label: 'Step 8' },
+      
+      // Service dependencies
+      { from: 'zip-service', to: 'static-analyzer', type: 'dependency' },
+      { from: 'static-analyzer', to: 'relevance-mapper', type: 'dependency' },
+      { from: 'req-normalizer', to: 'relevance-mapper', type: 'dependency' },
+      { from: 'project-mock', to: 'req-normalizer', type: 'dependency', label: 'helpDeskProject' },
+      { from: 'embedding', to: 'relevance-mapper', type: 'dependency' },
+      
+      // Orchestrator to Agents
+      { from: 'orchestrator', to: 'best-practices', type: 'orchestration', label: 'executa' },
+      { from: 'orchestrator', to: 'functional-req', type: 'orchestration', label: 'executa' },
+      { from: 'orchestrator', to: 'non-functional', type: 'orchestration', label: 'executa' },
+      { from: 'relevance-mapper', to: 'orchestrator', type: 'data-flow', label: 'files' },
+      
+      // Agents results flow
+      { from: 'best-practices', to: 'score-aggregator', type: 'data-flow', label: 'results' },
+      { from: 'functional-req', to: 'score-aggregator', type: 'data-flow', label: 'results' },
+      { from: 'non-functional', to: 'score-aggregator', type: 'data-flow', label: 'results' },
+      
+      // Score to Context to Feedback
+      { from: 'score-aggregator', to: 'context-builder', type: 'data-flow', label: 'score' },
+      { from: 'context-builder', to: 'feedback-gen', type: 'data-flow', label: 'context' },
+      { from: 'orchestrator', to: 'context-builder', type: 'data-flow', label: 'metadata' },
+    ];
+
+    // State
+    const state = {
+      layers: {
+        api: true,
+        services: true,
+        agents: true,
+        data: true
+      },
+      connectionTypes: {
+        'data-flow': true,
+        orchestration: true,
+        dependency: true
+      },
+      zoom: 1,
+      comments: [],
+      selectedNode: null,
+      isDragging: false,
+      draggedNode: null,
+      dragOffset: { x: 0, y: 0 }
+    };
+
+    // Initialize
+    function init() {
+      renderDiagram();
+      updatePrompt();
+    }
+
+    // Render Diagram
+    function renderDiagram() {
+      const svg = document.getElementById('architecture-svg');
+      const connectionsLayer = document.getElementById('connections-layer');
+      const nodesLayer = document.getElementById('nodes-layer');
+      
+      // Clear layers
+      connectionsLayer.innerHTML = '';
+      nodesLayer.innerHTML = '';
+      
+      // Filter visible nodes
+      const visibleNodes = nodes.filter(n => state.layers[n.layer]);
+      const visibleNodeIds = new Set(visibleNodes.map(n => n.id));
+      
+      // Draw connections
+      connections.forEach(conn => {
+        if (!state.connectionTypes[conn.type]) return;
+        if (!visibleNodeIds.has(conn.from) || !visibleNodeIds.has(conn.to)) return;
+        
+        drawConnection(conn, connectionsLayer);
+      });
+      
+      // Draw nodes
+      visibleNodes.forEach(node => {
+        drawNode(node, nodesLayer);
+      });
+    }
+
+    function drawConnection(conn, container) {
+      const fromNode = nodes.find(n => n.id === conn.from);
+      const toNode = nodes.find(n => n.id === conn.to);
+      
+      if (!fromNode || !toNode) return;
+      
+      // Calculate connection points
+      const fromX = fromNode.x + fromNode.w / 2;
+      const fromY = fromNode.y + fromNode.h;
+      const toX = toNode.x + toNode.w / 2;
+      const toY = toNode.y;
+      
+      // Adjust based on relative positions
+      let startX = fromX, startY = fromY, endX = toX, endY = toY;
+      
+      if (fromNode.y > toNode.y) {
+        // From is below to
+        startY = fromNode.y;
+        endY = toNode.y + toNode.h;
+      }
+      
+      if (Math.abs(fromNode.y - toNode.y) < 30) {
+        // Same level
+        if (fromNode.x < toNode.x) {
+          startX = fromNode.x + fromNode.w;
+          startY = fromNode.y + fromNode.h / 2;
+          endX = toNode.x;
+          endY = toNode.y + toNode.h / 2;
+        } else {
+          startX = fromNode.x;
+          startY = fromNode.y + fromNode.h / 2;
+          endX = toNode.x + toNode.w;
+          endY = toNode.y + toNode.h / 2;
+        }
+      }
+      
+      // Create path
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      
+      let d;
+      if (Math.abs(fromNode.y - toNode.y) < 30) {
+        // Horizontal connection
+        d = `M ${startX} ${startY} L ${endX} ${endY}`;
+      } else {
+        // Curved connection
+        const midY = (startY + endY) / 2;
+        d = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+      }
+      
+      path.setAttribute('d', d);
+      path.setAttribute('class', 'connection');
+      
+      // Style based on type
+      let strokeColor, marker, strokeDash;
+      switch(conn.type) {
+        case 'data-flow':
+          strokeColor = '#3b82f6';
+          marker = 'url(#arrow-blue)';
+          strokeDash = '0';
+          break;
+        case 'orchestration':
+          strokeColor = '#10b981';
+          marker = 'url(#arrow-green)';
+          strokeDash = '6,3';
+          break;
+        case 'dependency':
+          strokeColor = '#6b7280';
+          marker = 'url(#arrow-gray)';
+          strokeDash = '2,2';
+          break;
+      }
+      
+      path.setAttribute('stroke', strokeColor);
+      path.setAttribute('stroke-dasharray', strokeDash);
+      path.setAttribute('marker-end', marker);
+      
+      container.appendChild(path);
+      
+      // Add label if exists
+      if (conn.label) {
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        const midX = (startX + endX) / 2;
+        const midY = (startY + endY) / 2;
+        text.setAttribute('x', midX);
+        text.setAttribute('y', midY - 5);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('class', 'connection-label');
+        text.textContent = conn.label;
+        container.appendChild(text);
+      }
+    }
+
+    function drawNode(node, container) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'node');
+      g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+      g.setAttribute('data-node-id', node.id);
+      
+      // Drag events
+      g.addEventListener('mousedown', (e) => startDrag(e, node));
+      g.addEventListener('click', (e) => {
+        if (!state.isDragging) {
+          openCommentModal(node);
+        }
+      });
+      
+      // Check if node has comments
+      const hasComment = state.comments.some(c => c.target === node.id);
+      
+      // Rect
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('width', node.w);
+      rect.setAttribute('height', node.h);
+      rect.setAttribute('fill', node.color);
+      rect.setAttribute('stroke', hasComment ? '#f0883e' : '#374151');
+      rect.setAttribute('class', `node-rect ${hasComment ? 'has-comment' : ''}`);
+      g.appendChild(rect);
+      
+      // Label
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', node.w / 2);
+      label.setAttribute('y', 22);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('class', 'node-label');
+      label.textContent = node.label;
+      g.appendChild(label);
+      
+      // Subtitle
+      const subtitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      subtitle.setAttribute('x', node.w / 2);
+      subtitle.setAttribute('y', 38);
+      subtitle.setAttribute('text-anchor', 'middle');
+      subtitle.setAttribute('class', 'node-subtitle');
+      subtitle.textContent = node.subtitle;
+      g.appendChild(subtitle);
+      
+      container.appendChild(g);
+    }
+
+    // Layer Toggles
+    function toggleLayer(layer) {
+      state.layers[layer] = !state.layers[layer];
+      document.getElementById(`layer-${layer}`).checked = state.layers[layer];
+      renderDiagram();
+      updatePrompt();
+    }
+
+    // Connection Type Toggles
+    function toggleConnectionType(type) {
+      state.connectionTypes[type] = !state.connectionTypes[type];
+      document.getElementById(`conn-${type}`).checked = state.connectionTypes[type];
+      renderDiagram();
+    }
+
+    // Zoom Controls
+    function zoomIn() {
+      state.zoom = Math.min(state.zoom + 0.2, 2);
+      applyZoom();
+    }
+
+    function zoomOut() {
+      state.zoom = Math.max(state.zoom - 0.2, 0.5);
+      applyZoom();
+    }
+
+    function resetZoom() {
+      state.zoom = 1;
+      applyZoom();
+    }
+
+    function applyZoom() {
+      const svg = document.getElementById('architecture-svg');
+      svg.style.transform = `scale(${state.zoom})`;
+      svg.style.transformOrigin = 'top left';
+    }
+
+    // Presets
+    function loadPreset(preset) {
+      // Update active state
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      switch(preset) {
+        case 'full':
+          state.layers = { api: true, services: true, agents: true, data: true };
+          state.connectionTypes = { 'data-flow': true, orchestration: true, dependency: true };
+          break;
+        case 'pipeline':
+          state.layers = { api: true, services: true, agents: false, data: false };
+          state.connectionTypes = { 'data-flow': true, orchestration: false, dependency: false };
+          break;
+        case 'agents':
+          state.layers = { api: false, services: true, agents: true, data: false };
+          state.connectionTypes = { 'data-flow': true, orchestration: true, dependency: false };
+          break;
+        case 'services':
+          state.layers = { api: true, services: true, agents: false, data: true };
+          state.connectionTypes = { 'data-flow': true, orchestration: false, dependency: true };
+          break;
+      }
+      
+      // Update checkboxes
+      Object.keys(state.layers).forEach(layer => {
+        document.getElementById(`layer-${layer}`).checked = state.layers[layer];
+      });
+      Object.keys(state.connectionTypes).forEach(type => {
+        document.getElementById(`conn-${type}`).checked = state.connectionTypes[type];
+      });
+      
+      renderDiagram();
+      updatePrompt();
+    }
+
+    // Comment System
+    function openCommentModal(node) {
+      state.selectedNode = node;
+      document.getElementById('modal-title').textContent = node.label;
+      document.getElementById('modal-subtitle').textContent = node.subtitle;
+      
+      // Check if there's an existing comment
+      const existingComment = state.comments.find(c => c.target === node.id);
+      document.getElementById('modal-textarea').value = existingComment ? existingComment.text : '';
+      
+      document.getElementById('comment-modal').classList.add('active');
+      document.getElementById('modal-textarea').focus();
+    }
+
+    function closeModal() {
+      document.getElementById('comment-modal').classList.remove('active');
+      state.selectedNode = null;
+    }
+
+    function saveComment() {
+      if (!state.selectedNode) return;
+      
+      const text = document.getElementById('modal-textarea').value.trim();
+      
+      // Remove existing comment for this node
+      state.comments = state.comments.filter(c => c.target !== state.selectedNode.id);
+      
+      if (text) {
+        state.comments.push({
+          id: Date.now(),
+          target: state.selectedNode.id,
+          targetLabel: state.selectedNode.label,
+          targetFile: state.selectedNode.subtitle,
+          text: text
+        });
+      }
+      
+      closeModal();
+      renderDiagram();
+      updateCommentsList();
+      updatePrompt();
+    }
+
+    function updateCommentsList() {
+      const container = document.getElementById('comments-list');
+      document.getElementById('comment-count').textContent = state.comments.length;
+      
+      if (state.comments.length === 0) {
+        container.innerHTML = '<div class="no-comments">Clique em um componente para adicionar comentários</div>';
+        return;
+      }
+      
+      container.innerHTML = state.comments.map(comment => `
+        <div class="comment-item">
+          <div class="comment-header">
+            <span class="comment-node">${comment.targetLabel}</span>
+            <span class="comment-file">(${comment.targetFile})</span>
+          </div>
+          <div class="comment-text">${comment.text}</div>
+          <button class="comment-delete" onclick="deleteComment(${comment.id})">🗑️ Excluir</button>
+        </div>
+      `).join('');
+    }
+
+    function deleteComment(id) {
+      state.comments = state.comments.filter(c => c.id !== id);
+      renderDiagram();
+      updateCommentsList();
+      updatePrompt();
+    }
+
+    // Prompt Generation
+    function updatePrompt() {
+      const visibleLayers = Object.entries(state.layers)
+        .filter(([_, visible]) => visible)
+        .map(([layer]) => {
+          const names = { api: 'API/Routes', services: 'Serviços', agents: 'Agents', data: 'Dados/External' };
+          return names[layer];
+        });
+      
+      let promptText = `Analise a arquitetura do sistema Autograder`;
+      
+      if (visibleLayers.length < 4) {
+        promptText += `, focando nas camadas: ${visibleLayers.join(', ')}`;
+      } else {
+        promptText += ` (visualização completa de todas as camadas)`;
+      }
+      
+      promptText += `.\n\n`;
+      
+      // Add comments
+      if (state.comments.length > 0) {
+        promptText += `Feedback sobre componentes específicos:\n\n`;
+        state.comments.forEach(comment => {
+          promptText += `**${comment.targetLabel}** (${comment.targetFile}):\n${comment.text}\n\n`;
+        });
+      } else {
+        promptText += `Nenhum comentário adicionado ainda. Clique nos componentes do diagrama para adicionar feedback específico sobre a arquitetura.`;
+      }
+      
+      document.getElementById('prompt-content').textContent = promptText;
+    }
+
+    function copyPrompt() {
+      const promptText = document.getElementById('prompt-content').textContent;
+      navigator.clipboard.writeText(promptText).then(() => {
+        const btn = document.getElementById('copy-btn');
+        const text = document.getElementById('copy-text');
+        btn.classList.add('copied');
+        text.textContent = 'Copiado!';
+        
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          text.textContent = 'Copiar Prompt';
+        }, 2000);
+      });
+    }
+
+    // Close modal on overlay click
+    document.getElementById('comment-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'comment-modal') {
+        closeModal();
+      }
+    });
+
+    // Drag and Drop Functions
+    function startDrag(e, node) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      state.isDragging = false;
+      state.draggedNode = node;
+      
+      // Calculate offset considering zoom
+      const svg = document.getElementById('architecture-svg');
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+      
+      state.dragOffset.x = svgP.x - node.x;
+      state.dragOffset.y = svgP.y - node.y;
+      
+      // Add global mouse events
+      document.addEventListener('mousemove', onDrag);
+      document.addEventListener('mouseup', endDrag);
+      
+      // Visual feedback
+      const nodeEl = document.querySelector(`g[data-node-id="${node.id}"]`);
+      if (nodeEl) {
+        nodeEl.style.cursor = 'grabbing';
+        nodeEl.querySelector('rect').setAttribute('stroke', '#58a6ff');
+        nodeEl.querySelector('rect').setAttribute('stroke-width', '3');
+      }
+    }
+    
+    function onDrag(e) {
+      if (!state.draggedNode) return;
+      
+      state.isDragging = true;
+      
+      const svg = document.getElementById('architecture-svg');
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+      
+      // Update node position
+      state.draggedNode.x = Math.max(0, svgP.x - state.dragOffset.x);
+      state.draggedNode.y = Math.max(0, svgP.y - state.dragOffset.y);
+      
+      // Re-render
+      renderDiagram();
+    }
+    
+    function endDrag(e) {
+      document.removeEventListener('mousemove', onDrag);
+      document.removeEventListener('mouseup', endDrag);
+      
+      if (state.draggedNode) {
+        // Reset visual feedback
+        const nodeEl = document.querySelector(`g[data-node-id="${state.draggedNode.id}"]`);
+        if (nodeEl) {
+          nodeEl.style.cursor = 'pointer';
+        }
+        
+        // Reset drag state after a short delay to prevent click event
+        setTimeout(() => {
+          state.isDragging = false;
+          state.draggedNode = null;
+        }, 50);
+      }
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

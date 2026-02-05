@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Orchestrator Playground</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #58a6ff;
+      margin-bottom: 8px;
+      font-size: 24px;
+    }
+
+    .subtitle {
+      color: #8b949e;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+    }
+
+    .controls-panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+      height: fit-content;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .category-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .category-toggle:hover {
+      border-color: #58a6ff;
+    }
+
+    .category-toggle.active {
+      background: #1f6feb;
+      border-color: #58a6ff;
+    }
+
+    .category-toggle.active .category-name {
+      color: #fff;
+    }
+
+    .category-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .category-icon {
+      font-size: 16px;
+    }
+
+    .category-name {
+      font-size: 14px;
+      color: #c9d1d9;
+    }
+
+    .toggle-switch {
+      width: 44px;
+      height: 24px;
+      background: #30363d;
+      border-radius: 12px;
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    .category-toggle.active .toggle-switch {
+      background: #238636;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+    }
+
+    .category-toggle.active .toggle-switch::after {
+      transform: translateX(20px);
+    }
+
+    .file-count-input {
+      width: 100%;
+      padding: 8px 12px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .file-count-input:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+
+    .slider-container {
+      margin-top: 8px;
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #8b949e;
+      margin-bottom: 4px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: #30363d;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #58a6ff;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .presets {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .preset-btn {
+      padding: 6px 12px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-btn:hover {
+      border-color: #58a6ff;
+      background: #1f6feb;
+    }
+
+    .run-btn {
+      width: 100%;
+      padding: 12px;
+      background: #238636;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 16px;
+    }
+
+    .run-btn:hover {
+      background: #2ea043;
+    }
+
+    .run-btn:disabled {
+      background: #30363d;
+      cursor: not-allowed;
+    }
+
+    .preview-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .flow-visualization {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 24px;
+      min-height: 400px;
+    }
+
+    .flow-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .flow-diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .step-icon {
+      width: 40px;
+      height: 40px;
+      background: #21262d;
+      border: 2px solid #30363d;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .step-icon.active {
+      background: #1f6feb;
+      border-color: #58a6ff;
+    }
+
+    .step-icon.completed {
+      background: #238636;
+      border-color: #3fb950;
+    }
+
+    .step-icon.error {
+      background: #da3633;
+      border-color: #f85149;
+    }
+
+    .step-content {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .step-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 4px;
+    }
+
+    .step-description {
+      font-size: 12px;
+      color: #8b949e;
+    }
+
+    .step-details {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #21262d;
+      font-size: 11px;
+      color: #8b949e;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .arrow-down {
+      width: 2px;
+      height: 20px;
+      background: #30363d;
+      margin-left: 19px;
+    }
+
+    .parallel-container {
+      display: flex;
+      gap: 12px;
+      margin-left: 40px;
+    }
+
+    .agent-box {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .agent-box.active {
+      border-color: #58a6ff;
+      background: #1f6feb20;
+    }
+
+    .agent-box.completed {
+      border-color: #3fb950;
+      background: #23863620;
+    }
+
+    .agent-box.error {
+      border-color: #f85149;
+      background: #da363320;
+    }
+
+    .agent-box.disabled {
+      opacity: 0.4;
+    }
+
+    .agent-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .agent-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 4px;
+    }
+
+    .agent-status {
+      font-size: 10px;
+      color: #8b949e;
+    }
+
+    .results-panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .results-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 16px;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .result-card {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .result-card.success {
+      border-color: #3fb950;
+    }
+
+    .result-card.error {
+      border-color: #f85149;
+    }
+
+    .result-card.empty {
+      border-color: #30363d;
+      opacity: 0.6;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .result-icon {
+      font-size: 16px;
+    }
+
+    .result-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #c9d1d9;
+    }
+
+    .result-stats {
+      font-size: 11px;
+      color: #8b949e;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .metadata-bar {
+      display: flex;
+      gap: 16px;
+      padding: 12px 16px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #8b949e;
+    }
+
+    .metadata-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .metadata-value {
+      color: #58a6ff;
+      font-weight: 600;
+    }
+
+    .prompt-panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .prompt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .prompt-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c9d1d9;
+    }
+
+    .copy-btn {
+      padding: 6px 12px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .copy-btn:hover {
+      border-color: #58a6ff;
+      background: #1f6feb;
+    }
+
+    .copy-btn.copied {
+      background: #238636;
+      border-color: #3fb950;
+    }
+
+    .prompt-content {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #c9d1d9;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .error-simulation {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #30363d;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #c9d1d9;
+      cursor: pointer;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #f85149;
+    }
+
+    @media (max-width: 1024px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .parallel-container {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 Agent Orchestrator Playground</h1>
+    <p class="subtitle">Explore o fluxo de orquestração de agentes de avaliação</p>
+
+    <div class="layout">
+      <div class="controls-panel">
+        <div class="control-group">
+          <span class="control-label">Configurações Rápidas</span>
+          <div class="presets">
+            <button class="preset-btn" onclick="loadPreset('all')">Todos os Agentes</button>
+            <button class="preset-btn" onclick="loadPreset('minimal')">Mínimo</button>
+            <button class="preset-btn" onclick="loadPreset('error')">Com Erro</button>
+            <button class="preset-btn" onclick="loadPreset('single')">Apenas 1 Agente</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Agentes Ativos</span>
+          
+          <div class="category-toggle" id="toggle-best" onclick="toggleCategory('best')">
+            <div class="category-info">
+              <span class="category-icon">✨</span>
+              <span class="category-name">Best Practices</span>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+          <input type="number" class="file-count-input" id="files-best" placeholder="Número de arquivos (ex: 5)" value="5" min="0">
+
+          <div class="category-toggle" id="toggle-functional" onclick="toggleCategory('functional')">
+            <div class="category-info">
+              <span class="category-icon">⚙️</span>
+              <span class="category-name">Functional Requirements</span>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+          <input type="number" class="file-count-input" id="files-functional" placeholder="Número de arquivos (ex: 8)" value="8" min="0">
+
+          <div class="category-toggle" id="toggle-nonfunctional" onclick="toggleCategory('nonfunctional')">
+            <div class="category-info">
+              <span class="category-icon">🔒</span>
+              <span class="category-name">Non-Functional Requirements</span>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+          <input type="number" class="file-count-input" id="files-nonfunctional" placeholder="Número de arquivos (ex: 3)" value="3" min="0">
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Tempo de Processamento (ms)</span>
+          <div class="slider-container">
+            <div class="slider-labels">
+              <span>Rápido (100ms)</span>
+              <span id="processing-time-label">500ms</span>
+              <span>Lento (2000ms)</span>
+            </div>
+            <input type="range" id="processing-time" min="100" max="2000" value="500" step="100" oninput="updateProcessingTime(this.value)">
+          </div>
+        </div>
+
+        <div class="control-group error-simulation">
+          <span class="control-label">Simular Erros</span>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" id="error-best">
+              <span>Falhar Best Practices</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="error-functional">
+              <span>Falhar Functional Requirements</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="error-nonfunctional">
+              <span>Falhar Non-Functional Requirements</span>
+            </label>
+          </div>
+        </div>
+
+        <button class="run-btn" id="run-btn" onclick="runSimulation()">
+          ▶️ Executar Orquestração
+        </button>
+      </div>
+
+      <div class="preview-panel">
+        <div class="flow-visualization">
+          <div class="flow-title">
+            <span>📊</span>
+            Visualização do Fluxo
+          </div>
+          
+          <div class="flow-diagram" id="flow-diagram">
+            <div class="flow-step">
+              <div class="step-icon" id="step-input">📥</div>
+              <div class="step-content">
+                <div class="step-header">Input: RelevanceMappingResult</div>
+                <div class="step-description">Arquivos relevantes mapeados por categoria de requisito</div>
+                <div class="step-details" id="input-details">Aguardando configuração...</div>
+              </div>
+            </div>
+
+            <div class="arrow-down"></div>
+
+            <div class="flow-step">
+              <div class="step-icon" id="step-extract">🔍</div>
+              <div class="step-content">
+                <div class="step-header">Step 1: Extração de Arquivos</div>
+                <div class="step-description">Extrai arquivos relevantes do filteredFilesMap para cada categoria</div>
+                <div class="step-details" id="extract-details">Nenhuma categoria ativa</div>
+              </div>
+            </div>
+
+            <div class="arrow-down"></div>
+
+            <div class="flow-step">
+              <div class="step-icon" id="step-parallel">⚡</div>
+              <div class="step-content">
+                <div class="step-header">Step 2: Execução Paralela</div>
+                <div class="step-description">Agentes executam simultaneamente com tratamento de erro</div>
+              </div>
+            </div>
+
+            <div class="parallel-container" id="parallel-agents">
+              <div class="agent-box disabled" id="agent-best">
+                <div class="agent-icon">✨</div>
+                <div class="agent-name">Best Practices</div>
+                <div class="agent-status">Inativo</div>
+              </div>
+              <div class="agent-box disabled" id="agent-functional">
+                <div class="agent-icon">⚙️</div>
+                <div class="agent-name">Functional</div>
+                <div class="agent-status">Inativo</div>
+              </div>
+              <div class="agent-box disabled" id="agent-nonfunctional">
+                <div class="agent-icon">🔒</div>
+                <div class="agent-name">Non-Functional</div>
+                <div class="agent-status">Inativo</div>
+              </div>
+            </div>
+
+            <div class="arrow-down"></div>
+
+            <div class="flow-step">
+              <div class="step-icon" id="step-results">📤</div>
+              <div class="step-content">
+                <div class="step-header">Step 3: Resultados Agregados</div>
+                <div class="step-description">Mapeia resultados e retorna OrchestratedResults com metadados</div>
+                <div class="step-details" id="results-details">Aguardando execução...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-panel">
+          <div class="results-title">📈 Resultados da Execução</div>
+          <div class="results-grid" id="results-grid">
+            <div class="result-card empty">
+              <div class="result-header">
+                <span class="result-icon">✨</span>
+                <span class="result-name">Best Practices</span>
+              </div>
+              <div class="result-stats">Não executado</div>
+            </div>
+            <div class="result-card empty">
+              <div class="result-header">
+                <span class="result-icon">⚙️</span>
+                <span class="result-name">Functional</span>
+              </div>
+              <div class="result-stats">Não executado</div>
+            </div>
+            <div class="result-card empty">
+              <div class="result-header">
+                <span class="result-icon">🔒</span>
+                <span class="result-name">Non-Functional</span>
+              </div>
+              <div class="result-stats">Não executado</div>
+            </div>
+          </div>
+          <div class="metadata-bar" id="metadata-bar">
+            <div class="metadata-item">
+              <span>Categorias:</span>
+              <span class="metadata-value" id="meta-categories">0</span>
+            </div>
+            <div class="metadata-item">
+              <span>Arquivos Únicos:</span>
+              <span class="metadata-value" id="meta-files">0</span>
+            </div>
+            <div class="metadata-item">
+              <span>Tempo Total:</span>
+              <span class="metadata-value" id="meta-time">0ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="prompt-panel">
+          <div class="prompt-header">
+            <span class="prompt-title">📝 Prompt para Claude</span>
+            <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">
+              <span>📋</span>
+              <span id="copy-text">Copiar Prompt</span>
+            </button>
+          </div>
+          <div class="prompt-content" id="prompt-content">
+Configure o Agent Orchestrator com as seguintes especificações:
+
+- Ative as categorias de avaliação necessárias
+- Defina o número de arquivos por categoria
+- Execute a orquestração para processar os arquivos em paralelo
+- Aguarde os resultados de todos os agentes
+- Retorne os resultados agregados com metadados de processamento
+
+O serviço irá:
+1. Extrair arquivos relevantes do mapa filtrado
+2. Executar agentes em paralelo (apenas para categorias com arquivos)
+3. Mapear resultados para as categorias corretas
+4. Retornar OrchestratedResults com métricas de processamento
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      best: { active: true, files: 5, error: false },
+      functional: { active: true, files: 8, error: false },
+      nonfunctional: { active: true, files: 3, error: false },
+      processingTime: 500,
+      isRunning: false
+    };
+
+    const DEFAULTS = {
+      best: { active: true, files: 5 },
+      functional: { active: true, files: 8 },
+      nonfunctional: { active: true, files: 3 },
+      processingTime: 500
+    };
+
+    function toggleCategory(category) {
+      if (state.isRunning) return;
+      
+      state[category].active = !state[category].active;
+      document.getElementById(`toggle-${category}`).classList.toggle('active', state[category].active);
+      updateFlow();
+      updatePrompt();
+    }
+
+    function updateProcessingTime(value) {
+      state.processingTime = parseInt(value);
+      document.getElementById('processing-time-label').textContent = `${value}ms`;
+      updatePrompt();
+    }
+
+    function updateFileCount(category) {
+      const value = parseInt(document.getElementById(`files-${category}`).value) || 0;
+      state[category].files = Math.max(0, value);
+      updateFlow();
+      updatePrompt();
+    }
+
+    function updateErrorState(category) {
+      state[category].error = document.getElementById(`error-${category}`).checked;
+      updatePrompt();
+    }
+
+    function updateFlow() {
+      const categories = ['best', 'functional', 'nonfunctional'];
+      const activeCategories = categories.filter(c => state[c].active);
+      
+      // Update input details
+      const totalFiles = activeCategories.reduce((sum, c) => sum + state[c].files, 0);
+      document.getElementById('input-details').textContent = 
+        activeCategories.length > 0 
+          ? `${activeCategories.length} categorias | ${totalFiles} arquivos totais`
+          : 'Nenhuma categoria ativa';
+
+      // Update extract details
+      const extractDetails = activeCategories.map(c => {
+        const name = c === 'best' ? 'Best Practices' : c === 'functional' ? 'Functional' : 'Non-Functional';
+        return `${name}: ${state[c].files} arquivos`;
+      }).join(' | ') || 'Nenhuma categoria ativa';
+      document.getElementById('extract-details').textContent = extractDetails;
+
+      // Update agent boxes
+      categories.forEach(category => {
+        const box = document.getElementById(`agent-${category}`);
+        const isActive = state[category].active;
+        const fileCount = state[category].files;
+        
+        box.classList.toggle('disabled', !isActive || fileCount === 0);
+        box.classList.remove('active', 'completed', 'error');
+        
+        const statusEl = box.querySelector('.agent-status');
+        if (!isActive || fileCount === 0) {
+          statusEl.textContent = 'Inativo';
+        } else {
+          statusEl.textContent = `${fileCount} arquivo(s)`;
+        }
+      });
+    }
+
+    function updatePrompt() {
+      const parts = [];
+      const categories = [];
+      
+      if (state.best.active && state.best.files > 0) {
+        categories.push(`Best Practices (${state.best.files} arquivos)`);
+        if (state.best.error) parts.push('simular erro no agente Best Practices');
+      }
+      
+      if (state.functional.active && state.functional.files > 0) {
+        categories.push(`Functional Requirements (${state.functional.files} arquivos)`);
+        if (state.functional.error) parts.push('simular erro no agente Functional Requirements');
+      }
+      
+      if (state.nonfunctional.active && state.nonfunctional.files > 0) {
+        categories.push(`Non-Functional Requirements (${state.nonfunctional.files} arquivos)`);
+        if (state.nonfunctional.error) parts.push('simular erro no agente Non-Functional Requirements');
+      }
+
+      if (state.processingTime !== DEFAULTS.processingTime) {
+        parts.push(`tempo de processamento de ${state.processingTime}ms`);
+      }
+
+      let promptText = 'Execute o Agent Orchestrator';
+      
+      if (categories.length > 0) {
+        promptText += ` com as seguintes categorias: ${categories.join(', ')}`;
+      } else {
+        promptText += ' (sem categorias ativas)';
+      }
+
+      if (parts.length > 0) {
+        promptText += `. ${parts.join('. ')}`;
+      }
+
+      promptText += `\n\nO serviço irá:\n`;
+      promptText += `1. Extrair ${categories.length} conjunto(s) de arquivos relevantes\n`;
+      promptText += `2. Executar ${categories.length} agente(s) em paralelo\n`;
+      promptText += `3. Agregar resultados com metadados de processamento\n`;
+      promptText += `4. Retornar OrchestratedResults com tempo total de execução`;
+
+      document.getElementById('prompt-content').textContent = promptText;
+    }
+
+    async function runSimulation() {
+      if (state.isRunning) return;
+      
+      const activeCategories = ['best', 'functional', 'nonfunctional'].filter(c => state[c].active && state[c].files > 0);
+      
+      if (activeCategories.length === 0) {
+        alert('Ative pelo menos uma categoria com arquivos para executar a simulação.');
+        return;
+      }
+
+      state.isRunning = true;
+      document.getElementById('run-btn').disabled = true;
+      document.getElementById('run-btn').textContent = '⏳ Executando...';
+
+      // Reset UI
+      document.querySelectorAll('.step-icon').forEach(el => {
+        el.classList.remove('active', 'completed', 'error');
+      });
+      document.querySelectorAll('.agent-box').forEach(el => {
+        el.classList.remove('active', 'completed', 'error');
+      });
+
+      // Step 1: Input
+      document.getElementById('step-input').classList.add('active');
+      await sleep(300);
+      document.getElementById('step-input').classList.remove('active');
+      document.getElementById('step-input').classList.add('completed');
+
+      // Step 2: Extract
+      document.getElementById('step-extract').classList.add('active');
+      await sleep(400);
+      document.getElementById('step-extract').classList.remove('active');
+      document.getElementById('step-extract').classList.add('completed');
+
+      // Step 3: Parallel Execution
+      document.getElementById('step-parallel').classList.add('active');
+      
+      const startTime = Date.now();
+      const results = {};
+      
+      // Execute agents in parallel
+      const promises = activeCategories.map(async (category) => {
+        const box = document.getElementById(`agent-${category}`);
+        box.classList.add('active');
+        
+        // Simulate processing time
+        await sleep(state.processingTime / activeCategories.length);
+        
+        box.classList.remove('active');
+        
+        if (state[category].error) {
+          box.classList.add('error');
+          results[category] = { success: false, error: true, message: 'Erro simulado na execução' };
+        } else {
+          box.classList.add('completed');
+          results[category] = { 
+            success: true, 
+            files: state[category].files,
+            items: Math.floor(state[category].files * 1.5)
+          };
+        }
+      });
+
+      await Promise.all(promises);
+      
+      const processingTime = Date.now() - startTime;
+      
+      document.getElementById('step-parallel').classList.remove('active');
+      document.getElementById('step-parallel').classList.add('completed');
+
+      // Step 4: Results
+      document.getElementById('step-results').classList.add('active');
+      await sleep(300);
+      document.getElementById('step-results').classList.remove('active');
+      document.getElementById('step-results').classList.add('completed');
+
+      // Update results panel
+      updateResultsPanel(results, processingTime);
+
+      state.isRunning = false;
+      document.getElementById('run-btn').disabled = false;
+      document.getElementById('run-btn').textContent = '▶️ Executar Orquestração';
+    }
+
+    function updateResultsPanel(results, processingTime) {
+      const categories = [
+        { id: 'best', name: 'Best Practices', icon: '✨' },
+        { id: 'functional', name: 'Functional', icon: '⚙️' },
+        { id: 'nonfunctional', name: 'Non-Functional', icon: '🔒' }
+      ];
+
+      const resultsGrid = document.getElementById('results-grid');
+      resultsGrid.innerHTML = '';
+
+      let totalFiles = 0;
+      let activeCount = 0;
+
+      categories.forEach(cat => {
+        const result = results[cat.id];
+        const card = document.createElement('div');
+        
+        if (!result) {
+          card.className = 'result-card empty';
+          card.innerHTML = `
+            <div class="result-header">
+              <span class="result-icon">${cat.icon}</span>
+              <span class="result-name">${cat.name}</span>
+            </div>
+            <div class="result-stats">Não executado</div>
+          `;
+        } else if (result.error) {
+          card.className = 'result-card error';
+          card.innerHTML = `
+            <div class="result-header">
+              <span class="result-icon">❌</span>
+              <span class="result-name">${cat.name}</span>
+            </div>
+            <div class="result-stats">Erro: ${result.message}</div>
+          `;
+        } else {
+          card.className = 'result-card success';
+          card.innerHTML = `
+            <div class="result-header">
+              <span class="result-icon">✅</span>
+              <span class="result-name">${cat.name}</span>
+            </div>
+            <div class="result-stats">
+              ${result.files} arquivos<br>
+              ${result.items} itens avaliados
+            </div>
+          `;
+          totalFiles += result.files;
+          activeCount++;
+        }
+        
+        resultsGrid.appendChild(card);
+      });
+
+      // Update metadata
+      document.getElementById('meta-categories').textContent = activeCount;
+      document.getElementById('meta-files').textContent = totalFiles;
+      document.getElementById('meta-time').textContent = `${processingTime}ms`;
+
+      // Update results details
+      const successCount = Object.values(results).filter(r => r.success).length;
+      const errorCount = Object.values(results).filter(r => r.error).length;
+      document.getElementById('results-details').textContent = 
+        `${successCount} sucesso(s), ${errorCount} erro(s) | ${processingTime}ms total`;
+    }
+
+    function loadPreset(name) {
+      if (state.isRunning) return;
+
+      switch(name) {
+        case 'all':
+          state.best = { active: true, files: 5, error: false };
+          state.functional = { active: true, files: 8, error: false };
+          state.nonfunctional = { active: true, files: 3, error: false };
+          state.processingTime = 500;
+          break;
+        case 'minimal':
+          state.best = { active: true, files: 1, error: false };
+          state.functional = { active: false, files: 0, error: false };
+          state.nonfunctional = { active: false, files: 0, error: false };
+          state.processingTime = 100;
+          break;
+        case 'error':
+          state.best = { active: true, files: 5, error: true };
+          state.functional = { active: true, files: 8, error: false };
+          state.nonfunctional = { active: true, files: 3, error: true };
+          state.processingTime = 800;
+          break;
+        case 'single':
+          state.best = { active: false, files: 0, error: false };
+          state.functional = { active: true, files: 10, error: false };
+          state.nonfunctional = { active: false, files: 0, error: false };
+          state.processingTime = 300;
+          break;
+      }
+
+      // Update UI
+      ['best', 'functional', 'nonfunctional'].forEach(cat => {
+        document.getElementById(`toggle-${cat}`).classList.toggle('active', state[cat].active);
+        document.getElementById(`files-${cat}`).value = state[cat].files;
+        document.getElementById(`error-${cat}`).checked = state[cat].error;
+      });
+      
+      document.getElementById('processing-time').value = state.processingTime;
+      document.getElementById('processing-time-label').textContent = `${state.processingTime}ms`;
+
+      updateFlow();
+      updatePrompt();
+    }
+
+    function copyPrompt() {
+      const promptText = document.getElementById('prompt-content').textContent;
+      navigator.clipboard.writeText(promptText).then(() => {
+        const btn = document.getElementById('copy-btn');
+        const text = document.getElementById('copy-text');
+        btn.classList.add('copied');
+        text.textContent = 'Copiado!';
+        
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          text.textContent = 'Copiar Prompt';
+        }, 2000);
+      });
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      ['best', 'functional', 'nonfunctional'].forEach(cat => {
+        document.getElementById(`files-${cat}`).addEventListener('change', () => updateFileCount(cat));
+        document.getElementById(`error-${cat}`).addEventListener('change', () => updateErrorState(cat));
+      });
+
+      // Set initial state
+      loadPreset('all');
+      updateFlow();
+      updatePrompt();
+    });
+  </script>
+</body>
+</html>
