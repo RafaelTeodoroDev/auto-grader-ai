@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import zipRepositoryService from '../services/zip-repository-service';
 import staticRepoAnalyzer from '../services/static-repo-analyzer';
 import requirementsNormalizationAgent from '../services/requirements-normalization-agent';
-import { helpDeskProject } from '../services/mocks/project';
-import { formacaoPythonModulo09 } from '../services/mocks/formacao-python-modulo-09';
+import { helpDeskProject } from '../services/mocks/projects/help-desk-project';
+import { formacaoPythonModulo09 } from '../services/mocks/projects/formacao-python-modulo-09';
+import { desafioPraticoGerenciadorDeFilmes } from '../services/mocks/projects/desafio-pratico-gerenciador-de-filmes';
 import relevanceMappingAgent from '../services/relevance-mapping-service';
 import agentOrchestratorService from '../services/agent-orchestrator-service';
 import staticScoreAggregator from '../services/static-score-aggregator';
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
     // const projectInstructionDetailMarkdown = helpDeskProject.instruction_detail_markdown
 
     const repositoryUrl = 'https://github.com/Micael-William/app-gerenciador-filmes';
-    const projectInstructionDetailMarkdown = formacaoPythonModulo09.instruction_detail_markdown;
+    const projectInstructionDetailMarkdown = desafioPraticoGerenciadorDeFilmes.instruction_detail_markdown;
 
     console.log('\n🚀 Starting evaluation pipeline...\n');
     
