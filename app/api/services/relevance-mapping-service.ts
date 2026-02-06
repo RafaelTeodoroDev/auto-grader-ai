@@ -106,7 +106,7 @@ const DEFAULT_OPTIONS: Required<HybridOptions> = {
   parallelBatchSize: 10,
   
   // Phase 3: Hybrid Scoring
-  hybridScoreThreshold: 0.20,
+  hybridScoreThreshold: 0.10,
 };
 
 // ============================================================================

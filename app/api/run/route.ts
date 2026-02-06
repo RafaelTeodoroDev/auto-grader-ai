@@ -3,6 +3,7 @@ import zipRepositoryService from '../services/zip-repository-service';
 import staticRepoAnalyzer from '../services/static-repo-analyzer';
 import requirementsNormalizationAgent from '../services/requirements-normalization-agent';
 import { helpDeskProject } from '../services/mocks/project';
+import { formacaoPythonModulo09 } from '../services/mocks/formacao-python-modulo-09';
 import relevanceMappingAgent from '../services/relevance-mapping-service';
 import agentOrchestratorService from '../services/agent-orchestrator-service';
 import staticScoreAggregator from '../services/static-score-aggregator';
@@ -21,11 +22,17 @@ function isErrorResult(result: unknown): boolean {
 
 export async function GET(request: Request) {
   try {
+    // const repositoryUrl = 'https://github.com/RafaelTeodoroDev/node-entregas';
+    // const projectInstructionDetailMarkdown = helpDeskProject.instruction_detail_markdown
+
+    const repositoryUrl = 'https://github.com/Micael-William/app-gerenciador-filmes';
+    const projectInstructionDetailMarkdown = formacaoPythonModulo09.instruction_detail_markdown;
+
     console.log('\n🚀 Starting evaluation pipeline...\n');
     
     // Step 1: Download and extract repository
+    const repositoryData: any = await zipRepositoryService.getRepositoryData(repositoryUrl);
     console.log('📦 Step 1: Downloading repository...');
-    const repositoryData: any = await zipRepositoryService.getRepositoryData();
     console.log(`✅ Repository downloaded - ${Object.keys(repositoryData.filesMap || {}).length} files found\n`);
     
     // Step 2: Static analysis
@@ -39,7 +46,7 @@ export async function GET(request: Request) {
     // Step 3: Normalize requirements
     console.log('📝 Step 3: Normalizing requirements...');
     const requirementsNormalizationResult = await requirementsNormalizationAgent.execute(
-      helpDeskProject.instruction_detail_markdown
+      projectInstructionDetailMarkdown
     );
     console.log(`✅ Requirements normalized:`);
     console.log(`   - Best Practices: ${requirementsNormalizationResult.best_practices?.categories?.length || 0} categories`);
@@ -63,8 +70,13 @@ export async function GET(request: Request) {
     const orchestratorResults = await agentOrchestratorService.orchestrate({
       relevantFilesByRequirement: relevanceMappingResult,
       filteredFilesMap: analysisResult.filteredFilesMap,
-      normalizedRequirements: requirementsNormalizationResult
+      normalizedRequirements: requirementsNormalizationResult,
+      directoryStructure: repositoryData.directoryStructure
     });
+    // check if orchestratorResults is an error
+    if (orchestratorResults.best_practices?.error || orchestratorResults.functional_requirements?.error || orchestratorResults.non_functional_requirements?.error) {
+      throw new Error('Error orchestrating agents');
+    }
     console.log(`✅ Agent orchestration complete!\n`);
 
     // Step 6: Aggregate scores
@@ -108,8 +120,10 @@ export async function GET(request: Request) {
       domainScores: aggregatedScore.domainScores,
       metadata: aggregatedScore.metadata,
       requirementsNormalizationResult,
+      relevanceMappingResult,
       orchestratorResults,
-      relevanceMappingResult
+      scoreAggregatorResult: aggregatedScore,
+      feedbackContext,
     });
 
   } catch (error) {

@@ -6,9 +6,11 @@ import { CategoryGroup } from '../services/requirements-normalization-agent';
 interface AgentInput {
   relevantFiles: Record<string, string>;
   requirements: CategoryGroup;
+  directoryStructure: string;
 }
 
 interface FunctionalRequirementsResult {
+  error?: string;
   categories: Array<{
     title: string;
     score: number;
@@ -28,7 +30,7 @@ class FunctionalRequirementsAgent {
     console.log(`\n🤖 Starting functional requirements evaluation...\n`);
     
     const codeContext = this.formatFiles(input.relevantFiles);
-    const systemPrompt = this.buildSystemPrompt(input.requirements);
+    const systemPrompt = this.buildSystemPrompt(input.requirements, input.directoryStructure);
     
     let lastError: Error | undefined;
     
@@ -55,8 +57,7 @@ class FunctionalRequirementsAgent {
         return result.object;
         
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        console.error(`  ❌ Attempt ${attempt} failed:`, lastError.message);
+        console.error(`  ❌ Attempt ${attempt} failed:`, error);
         
         if (attempt < this.MAX_RETRIES) {
           const delay = this.RETRY_DELAY_MS * attempt;
@@ -74,7 +75,7 @@ class FunctionalRequirementsAgent {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
   
-  private buildSystemPrompt(requirements: CategoryGroup): string {
+  private buildSystemPrompt(requirements: CategoryGroup, directoryStructure: string): string {
     const requirementsJson = JSON.stringify(requirements, null, 2);
     
     const exampleCategories = requirements.categories.map(cat => ({
@@ -101,6 +102,16 @@ class FunctionalRequirementsAgent {
 Analyze pre-filtered code files to verify if functional requirements are implemented. The code provided is the most relevant subset identified by semantic analysis.
 
 Check for feature implementation, user stories, system behavior, and business rules.
+
+---
+
+## PROJECT STRUCTURE
+
+Below is the complete directory structure of the project to give you context about the overall codebase organization:
+
+\`\`\`
+${directoryStructure}
+\`\`\`
 
 ---
 
@@ -198,6 +209,18 @@ Example of CORRECT vs INCORRECT feedback:
 
 ---
 
+⚠️ IMPORTANT: CODE COVERAGE CONTEXT
+- You are receiving from the user ONLY the most relevant files identified by semantic analysis
+- This will NOT be the complete codebase - many files exist but are not shown here
+- Missing implementations may exist in files not provided to you
+- When calculating scores, be LENIENT about missing features:
+  - If a feature might exist in non-provided files, give benefit of the doubt
+  - Focus scoring on the quality of what IS implemented in the provided files
+  - Only penalize clearly missing requirements when the directory structure suggests they should be in the provided files
+- Use the directory structure above to understand what other files/folders exist that you're not seeing
+
+---
+
 ## CRITICAL OUTPUT RULES
 
 ⚠️ Return ONLY valid JSON (no markdown fences, no explanations)
@@ -233,7 +256,7 @@ ${content}
     return z.object({
       categories: z.array(z.object({
         title: z.string(),
-        score: z.number().min(0).max(100),
+        score: z.number().describe('The score of the category. Must be between 0 and 100.'),
         status: z.enum(['IMPLEMENTED', 'PARTIAL', 'NOT_IMPLEMENTED']),
         keyEvidences: z.array(z.string()),
         mainIssues: z.array(z.string()),

@@ -35,6 +35,7 @@ interface OrchestrateInput {
   relevantFilesByRequirement: RelevanceMappingResult;
   filteredFilesMap: Record<string, string>;
   normalizedRequirements: NormalizedRequirements;
+  directoryStructure: string;
 }
 
 interface AgentErrorResult {
@@ -97,7 +98,8 @@ class AgentOrchestratorService {
       promises.push(
         this.executeBestPracticesAgent(
           bestPracticesFiles,
-          params.normalizedRequirements.best_practices
+          params.normalizedRequirements.best_practices,
+          params.directoryStructure
         ).catch(err => this.handleAgentError('best_practices', err))
       );
       categoryMap.push('best_practices');
@@ -107,7 +109,8 @@ class AgentOrchestratorService {
       promises.push(
         this.executeFunctionalAgent(
           functionalFiles,
-          params.normalizedRequirements.functional_requirements
+          params.normalizedRequirements.functional_requirements,
+          params.directoryStructure
         ).catch(err => this.handleAgentError('functional_requirements', err))
       );
       categoryMap.push('functional_requirements');
@@ -117,7 +120,8 @@ class AgentOrchestratorService {
       promises.push(
         this.executeNonFunctionalAgent(
           nonFunctionalFiles,
-          params.normalizedRequirements.non_functional_requirements
+          params.normalizedRequirements.non_functional_requirements,
+          params.directoryStructure
         ).catch(err => this.handleAgentError('non_functional_requirements', err))
       );
       categoryMap.push('non_functional_requirements');
@@ -190,36 +194,39 @@ class AgentOrchestratorService {
    */
   private async executeBestPracticesAgent(
     files: Record<string, string>,
-    requirements: any
+    requirements: any,
+    directoryStructure: string
   ): Promise<BestPracticesResult> {
     console.log(`  🔍 Evaluating best practices (${Object.keys(files).length} files)...`);
-    const result = await bestPracticesAgent.evaluate({ relevantFiles: files, requirements });
+    const result = await bestPracticesAgent.evaluate({ relevantFiles: files, requirements, directoryStructure });
     console.log(`  ✅ Best practices evaluation complete`);
     return result;
   }
-  
+
   /**
    * Executes the functional requirements agent
    */
   private async executeFunctionalAgent(
     files: Record<string, string>,
-    requirements: any
+    requirements: any,
+    directoryStructure: string
   ): Promise<FunctionalRequirementsResult> {
     console.log(`  🔍 Evaluating functional requirements (${Object.keys(files).length} files)...`);
-    const result = await functionalRequirementsAgent.evaluate({ relevantFiles: files, requirements });
+    const result = await functionalRequirementsAgent.evaluate({ relevantFiles: files, requirements, directoryStructure });
     console.log(`  ✅ Functional requirements evaluation complete`);
     return result;
   }
-  
+
   /**
    * Executes the non-functional requirements agent
    */
   private async executeNonFunctionalAgent(
     files: Record<string, string>,
-    requirements: any
+    requirements: any,
+    directoryStructure: string
   ): Promise<NonFunctionalRequirementsResult> {
     console.log(`  🔍 Evaluating non-functional requirements (${Object.keys(files).length} files)...`);
-    const result = await nonFunctionalRequirementsAgent.evaluate({ relevantFiles: files, requirements });
+    const result = await nonFunctionalRequirementsAgent.evaluate({ relevantFiles: files, requirements, directoryStructure });
     console.log(`  ✅ Non-functional requirements evaluation complete`);
     return result;
   }
