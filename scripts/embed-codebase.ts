@@ -14,7 +14,7 @@ async function main() {
 
   try {
     // Buscar dados do repositório
-    const repoData = await zipRepositoryService.getRepositoryData();
+    const repoData = await zipRepositoryService.getRepositoryData('https://github.com/RafaelTeodoroDev/node-entregas');
 
     if (!repoData) {
       console.error('❌ Falha ao buscar dados do repositório');

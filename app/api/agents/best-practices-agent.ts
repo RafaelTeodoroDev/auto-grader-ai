@@ -20,7 +20,7 @@ interface BestPracticesResult {
 }
 
 class BestPracticesAgent {
-  private readonly MODEL = 'anthropic/claude-3.5-sonnet';
+  private readonly MODEL = 'anthropic/claude-sonnet-4.5';
   private readonly MAX_RETRIES = 3;
   private readonly RETRY_DELAY_MS = 1000;
   

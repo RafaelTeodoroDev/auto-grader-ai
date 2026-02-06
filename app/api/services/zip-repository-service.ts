@@ -5,10 +5,6 @@ import { randomUUID } from 'node:crypto';
 import axios from 'axios';
 import { isBlacklisted } from '../utils/codebase';
 
-const owner = 'RafaelTeodoroDev';
-const repo = 'node-entregas';
-const GITHUB_URL = `https://github.com/${owner}/${repo}`;
-
 const MAX_FILE_SIZE_MB = 100;
 const MAX_REPO_SIZE_KB = MAX_FILE_SIZE_MB * 1024;
 const MAX_FILES = 90;
@@ -18,7 +14,54 @@ interface RepositoryDetails {
     defaultBranch: string;
 }
 
+interface ParsedGitHubUrl {
+    owner: string;
+    repo: string;
+    cleanUrl: string;
+}
+
 class ZipRepositoryService {
+    /**
+     * Valida e extrai owner/repo de uma URL do GitHub
+     * @param url - URL do repositório GitHub
+     * @returns Objeto com owner, repo e URL limpa
+     * @throws Error se a URL for inválida
+     */
+    private parseGitHubUrl(url: string): ParsedGitHubUrl {
+        // Remove espaços em branco
+        const trimmedUrl = url.trim();
+
+        // Valida se é uma URL do GitHub
+        const githubUrlPattern = /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/?.*$/i;
+        const match = trimmedUrl.match(githubUrlPattern);
+
+        if (!match) {
+            throw new Error(
+                `Invalid GitHub repository URL: ${url}. Expected format: https://github.com/owner/repo`
+            );
+        }
+
+        const [, owner, repo] = match;
+
+        // Valida que owner e repo não estão vazios
+        if (!owner || !repo) {
+            throw new Error(
+                `Invalid GitHub repository URL: ${url}. Could not extract owner and repository name.`
+            );
+        }
+
+        // Remove .git suffix se presente
+        const cleanRepo = repo.replace(/\.git$/, '');
+
+        // Constrói a URL limpa (sem .git e sem trailing slash)
+        const cleanUrl = `https://github.com/${owner}/${cleanRepo}`;
+
+        return {
+            owner,
+            repo: cleanRepo,
+            cleanUrl,
+        };
+    }
     /**
      * Busca os detalhes do repositório (tamanho e branch padrão)
      * @param url - URL do repositório GitHub
@@ -27,6 +70,7 @@ class ZipRepositoryService {
     private async getRepositoryDetails(
         url: string,
     ): Promise<RepositoryDetails> {
+        const { owner, repo } = this.parseGitHubUrl(url);
         const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
         const token = process.env.GITHUB_TOKEN;
 
@@ -243,18 +287,24 @@ class ZipRepositoryService {
     /**
      * Busca dados do repositório baixando e extraindo o ZIP
      * Retorna a estrutura de diretórios e um mapa de arquivos
+     * @param repository_url - URL do repositório GitHub (formato: https://github.com/owner/repo)
      * @returns Objeto com directoryStructure e filesMap, ou null em caso de erro
      */
-    async getRepositoryData(): Promise<{
+    async getRepositoryData(
+        repository_url: string,
+    ): Promise<{
         directoryStructure: string;
         filesMap: Record<string, string>;
     } | null> {
         const tempFolder = path.join(process.cwd(), 'tmp');
         const repositoryFolder = path.join(tempFolder, randomUUID());
 
+        // Valida e extrai owner/repo da URL
+        const { cleanUrl } = this.parseGitHubUrl(repository_url);
+
         try {
             // Busca detalhes do repositório
-            const repoDetails = await this.getRepositoryDetails(GITHUB_URL);
+            const repoDetails = await this.getRepositoryDetails(cleanUrl);
 
             // Verifica o tamanho do repositório
             if (repoDetails.sizeInKb > MAX_REPO_SIZE_KB) {
@@ -267,7 +317,7 @@ class ZipRepositoryService {
 
             // Baixa o ZIP do repositório
             const zipPath = await this.downloadRepositoryZip({
-                url: GITHUB_URL,
+                url: cleanUrl,
                 outputFolder: tempFolder,
                 defaultBranch: repoDetails.defaultBranch,
             });

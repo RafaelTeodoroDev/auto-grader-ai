@@ -201,7 +201,10 @@ Página Carrinho/Checkout
 7. Ensure the JSON is complete and well-formed. You MUST return valid JSON that can be parsed without errors.
 8. ALL output text must be in Brazilian Portuguese (PT-BR)
 9. If some topic does not have any requirements, do not create a category for it, but keep the topic in the appropriate section with an empty array of categories.
-10. ⚠️ CRITICAL: Requirements text must be copied EXACTLY as in the input, word for word`;
+10. ⚠️ CRITICAL: Requirements text must be copied EXACTLY as in the input, word for word
+11. Ignore any information about how to deliver the project. Frases like "Forma de Entrega", "você deve enviar a URL do seu código no GitHub para a plataforma"
+12. Ignore any type of sharing information, like "que tal fazer um post no LinkedIn compartilhando o seu aprendizado", "É uma excelente forma de demonstrar seus conhecimentos e atrair novas oportunidades"
+13. Consider only the requirements that is related to the project. Ignore any information about how to deliver the project or how to share it.`;
 
   /**
    * Language configuration for output
