@@ -5,6 +5,8 @@ import requirementsNormalizationAgent from '../services/requirements-normalizati
 import { helpDeskProject } from '../services/mocks/projects/help-desk-project';
 import { formacaoPythonModulo09 } from '../services/mocks/projects/formacao-python-modulo-09';
 import { desafioPraticoGerenciadorDeFilmes } from '../services/mocks/projects/desafio-pratico-gerenciador-de-filmes';
+import { goAdicionandoPersistencia } from '../services/mocks/projects/go-adicionando-persistencia';
+import { desafioSistemaDeLivraria } from '../services/mocks/projects/desafio-sistema-de-livraria';
 import relevanceMappingAgent from '../services/relevance-mapping-service';
 import agentOrchestratorService from '../services/agent-orchestrator-service';
 import staticScoreAggregator from '../services/static-score-aggregator';
@@ -34,7 +36,19 @@ export async function GET(request: Request) {
     // Step 1: Download and extract repository
     const repositoryData: any = await zipRepositoryService.getRepositoryData(repositoryUrl);
     console.log('📦 Step 1: Downloading repository...');
-    console.log(`✅ Repository downloaded - ${Object.keys(repositoryData.filesMap || {}).length} files found\n`);
+    const filesCount = Object.keys(repositoryData.filesMap || {}).length;
+    console.log(`✅ Repository downloaded - ${filesCount} files found\n`);
+    
+    // Check if repository has no files
+    if (filesCount === 0) {
+      return NextResponse.json(
+        {
+          error: 'Repository is empty or no files were found',
+          details: 'The repository appears to be empty or the zip file could not be extracted properly'
+        },
+        { status: 400 }
+      );
+    }
     
     // Step 2: Static analysis
     console.log('🔍 Step 2: Running static analysis...');
